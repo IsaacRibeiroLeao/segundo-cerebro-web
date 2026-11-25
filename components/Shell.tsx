@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Image from "next/image";
 import { Icon } from "./Icon";
 
 const itens = [
@@ -20,14 +21,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen md:flex">
       <aside className="hidden md:flex md:w-60 md:flex-col md:border-r md:border-line md:px-5 md:py-8 md:sticky md:top-0 md:h-screen">
-        <p className="font-serif text-2xl">Segundo Cérebro</p>
+        <div className="flex items-center gap-3">
+          <Image src="/logo.png" alt="" width={40} height={40} className="rounded-xl shadow-sm" />
+          <p className="font-serif text-xl leading-tight">Segundo<br />Cérebro</p>
+        </div>
         <nav className="mt-10 flex flex-col gap-1">
           {itens.map((i) => (
             <Link
               key={i.href}
               href={i.href}
               className={`press flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${
-                ativo(i.href) ? "bg-accent-soft text-accent font-medium" : "text-muted hover:text-ink"
+                ativo(i.href) ? "bg-accent-soft text-accent font-medium shadow-[inset_3px_0_0_var(--accent)]" : "text-muted hover:text-ink hover:bg-accent-soft/50"
               }`}
             >
               <Icon nome={i.icone} />
@@ -44,11 +48,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </button>
       </aside>
 
-      <main className="flex-1 pb-24 md:pb-0">
+      <main className="flex-1 pb-28 md:pb-0">
         <div key={pathname} className={`anim-fade-in mx-auto w-full px-5 py-8 md:py-12 ${pathname.startsWith("/mapa") ? "max-w-5xl" : "max-w-3xl"}`}>{children}</div>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-10 flex border-t border-line bg-paper/95 backdrop-blur">
+      <nav className="glass md:hidden fixed bottom-3 inset-x-3 z-10 flex rounded-3xl px-1">
         {itens.map((i) => (
           <Link
             key={i.href}
@@ -61,6 +65,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Icon nome={i.icone} />
             </span>
             {i.nome}
+            <span className={`h-1 rounded-full bg-accent transition-all duration-300 ${ativo(i.href) ? "w-4 opacity-100" : "w-0 opacity-0"}`} />
           </Link>
         ))}
       </nav>

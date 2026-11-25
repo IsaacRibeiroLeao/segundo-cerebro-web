@@ -67,7 +67,7 @@ export function RevisaoCard() {
       ) : (
         <div className="mt-3">
           <p className="text-sm text-muted">Um resumo do que o Senhor tem falado com você nos últimos 7 dias, com temas, passagens e uma pergunta para a próxima semana.</p>
-          <button onClick={gerar} className="press mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-paper">
+          <button onClick={gerar} className="press btn-accent mt-4 rounded-xl px-4 py-2 text-sm font-medium text-paper">
             Gerar revisão
           </button>
         </div>

@@ -158,7 +158,7 @@ export default function LinhaDoTempo() {
         </>
       ) : (
         <div className="mt-5">
-          <button onClick={novaRevisao} disabled={gerando} className="press rounded-xl bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
+          <button onClick={novaRevisao} disabled={gerando} className="press btn-accent rounded-xl px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
             {gerando ? "Gerando…" : "Gerar revisão dos últimos 7 dias"}
           </button>
           {gerando && <p className="mt-3"><Pensando texto="Relendo a sua semana" /></p>}

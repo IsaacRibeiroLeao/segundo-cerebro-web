@@ -146,7 +146,7 @@ export default function Hoje() {
           <p className="text-xs text-muted">Sem passagem? Eu sugiro uma para dar contexto.</p>
           <button
             disabled={fase !== "livre" || !conteudo.trim()}
-            className="press rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-paper disabled:opacity-50"
+            className="press btn-accent rounded-xl px-5 py-2.5 text-sm font-medium text-paper disabled:opacity-50"
           >
             {fase === "guardando" ? "Guardando…" : fase === "conectando" ? "Conectando…" : "Guardar e conectar"}
           </button>

@@ -114,7 +114,7 @@ function Cartao({
                   className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent" />
               </div>
               <div className="flex gap-2">
-                <button onClick={salvarEdicao} disabled={!texto.trim() || ocupado !== null} className="press rounded-xl bg-accent px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">Salvar e refazer reflexão</button>
+                <button onClick={salvarEdicao} disabled={!texto.trim() || ocupado !== null} className="press btn-accent rounded-xl px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">Salvar e refazer reflexão</button>
                 <button onClick={() => setEditando(false)} className="press rounded-xl px-4 py-2 text-sm text-muted hover:text-ink">Cancelar</button>
               </div>
             </div>

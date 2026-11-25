@@ -120,3 +120,35 @@ input {
 @media (min-width: 768px) {
   .anim-panel { animation-name: slide-left; }
 }
+
+/* ---------- Visual moderno: login, vidro, brilho ---------- */
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(18px, -14px) scale(1.08); }
+}
+@keyframes node-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+@keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+@keyframes line-draw { to { stroke-dashoffset: 0; } }
+.anim-float { animation: float-y 5s ease-in-out infinite; }
+.anim-drift { animation: drift 11s ease-in-out infinite; }
+.anim-drift-slow { animation: drift 16s ease-in-out infinite reverse; }
+.anim-node { animation: node-pulse 3.6s ease-in-out infinite; }
+.anim-shake { animation: shake 0.4s ease-in-out; }
+.anim-line { stroke-dasharray: 400; stroke-dashoffset: 400; animation: line-draw 2.2s ease-out forwards; }
+.glass {
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px -24px rgba(60, 40, 20, 0.45);
+}
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+  box-shadow: 0 10px 24px -12px var(--accent);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.btn-accent:hover:not(:disabled) { box-shadow: 0 14px 28px -12px var(--accent); transform: translateY(-1px); }
+.btn-accent:active:not(:disabled) { transform: scale(0.98); }
+.campo { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.campo:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent); }

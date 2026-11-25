@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { Icon } from "./Icon";
 
 export function AuthGate({ children }: { children: (session: Session) => React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -19,13 +21,36 @@ export function AuthGate({ children }: { children: (session: Session) => React.R
 
   if (carregando) {
     return (
-      <div className="min-h-screen grid place-items-center text-muted font-serif text-lg">
-        Segundo Cérebro…
+      <div className="min-h-screen grid place-items-center">
+        <Image src="/logo.png" alt="" width={72} height={72} className="anim-float rounded-2xl" priority />
       </div>
     );
   }
   if (!session) return <Login />;
   return <>{children(session)}</>;
+}
+
+const NOS = [
+  { x: 12, y: 18, d: 0 }, { x: 78, y: 12, d: 0.6 }, { x: 90, y: 46, d: 1.2 }, { x: 70, y: 82, d: 0.3 },
+  { x: 24, y: 76, d: 0.9 }, { x: 8, y: 48, d: 1.5 }, { x: 50, y: 92, d: 0.2 },
+];
+const LIGACOES = [[0, 1], [1, 2], [2, 3], [3, 6], [6, 4], [4, 5], [5, 0], [0, 4], [1, 3]];
+
+function FundoNos() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="anim-drift absolute -top-24 -left-20 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
+      <div className="anim-drift-slow absolute -bottom-28 -right-16 h-96 w-96 rounded-full bg-sage/25 blur-3xl" />
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {LIGACOES.map(([a, b], i) => (
+          <line key={i} x1={NOS[a].x} y1={NOS[a].y} x2={NOS[b].x} y2={NOS[b].y} stroke="var(--accent)" strokeOpacity="0.28" strokeWidth="0.25" vectorEffect="non-scaling-stroke" className="anim-line" style={{ animationDelay: `${i * 0.18}s` }} />
+        ))}
+      </svg>
+      {NOS.map((n, i) => (
+        <span key={i} className="anim-node absolute h-2.5 w-2.5 rounded-full bg-sage" style={{ left: `${n.x}%`, top: `${n.y}%`, animationDelay: `${n.d}s` }} />
+      ))}
+    </div>
+  );
 }
 
 function Login() {
@@ -35,6 +60,8 @@ function Login() {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [ver, setVer] = useState(false);
+  const [tremer, setTremer] = useState(0);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -43,55 +70,42 @@ function Login() {
     setEnviando(true);
     if (criando) {
       const { data, error } = await supabase.auth.signUp({ email, password: senha });
-      if (error) setErro(error.message);
+      if (error) { setErro(error.message); setTremer((n) => n + 1); }
       else if (!data.session) setAviso("Conta criada. Confirme o email que enviamos e depois entre.");
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-      if (error) setErro("Email ou senha incorretos.");
+      if (error) { setErro("Email ou senha incorretos."); setTremer((n) => n + 1); }
     }
     setEnviando(false);
   }
 
   return (
-    <main className="min-h-screen grid place-items-center px-5">
-      <form onSubmit={enviar} className="w-full max-w-sm">
-        <h1 className="font-serif text-4xl text-ink">Segundo Cérebro</h1>
-        <p className="mt-2 text-muted">Suas anotações, conectadas.</p>
+    <main className="relative min-h-screen grid place-items-center px-5 overflow-hidden">
+      <FundoNos />
+      <form key={tremer} onSubmit={enviar} className={`glass relative w-full max-w-sm rounded-3xl p-7 anim-fade-up ${tremer ? "anim-shake" : ""}`}>
+        <div className="flex flex-col items-center text-center">
+          <Image src="/logo.png" alt="" width={84} height={84} priority className="anim-float rounded-[22px] shadow-lg" />
+          <h1 className="mt-5 font-serif text-3xl text-ink anim-fade-up" style={{ animationDelay: "0.1s" }}>Segundo Cérebro</h1>
+          <p className="mt-1.5 text-muted anim-fade-up" style={{ animationDelay: "0.18s" }}>Suas anotações, conectadas.</p>
+        </div>
 
-        <label className="block mt-8 text-sm text-muted">Email</label>
-        <input
-          type="email"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-accent"
-        />
-        <label className="block mt-4 text-sm text-muted">Senha</label>
-        <input
-          type="password"
-          required
-          minLength={6}
-          autoComplete={criando ? "new-password" : "current-password"}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-line bg-card px-4 py-3 outline-none focus:border-accent"
-        />
+        <label className="campo mt-7 flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 anim-fade-up" style={{ animationDelay: "0.24s" }}>
+          <Icon nome="hoje" className="h-5 w-5 text-accent shrink-0" />
+          <input type="email" required placeholder="Email" aria-label="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-transparent outline-none placeholder:text-muted/70" />
+        </label>
+        <label className="campo mt-3 flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 anim-fade-up" style={{ animationDelay: "0.3s" }}>
+          <Icon nome="notas" className="h-5 w-5 text-accent shrink-0" />
+          <input type={ver ? "text" : "password"} required minLength={6} placeholder="Senha" aria-label="Senha" autoComplete={criando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full bg-transparent outline-none placeholder:text-muted/70" />
+          <button type="button" onClick={() => setVer(!ver)} className="text-xs text-muted hover:text-ink press" aria-label={ver ? "Ocultar senha" : "Mostrar senha"}>{ver ? "ocultar" : "ver"}</button>
+        </label>
 
-        {erro && <p className="mt-3 text-sm text-red-600">{erro}</p>}
-        {aviso && <p className="mt-3 text-sm text-sage">{aviso}</p>}
+        {erro && <p role="alert" className="mt-3 text-sm text-red-600 anim-fade-in">{erro}</p>}
+        {aviso && <p className="mt-3 text-sm text-sage anim-fade-in">{aviso}</p>}
 
-        <button
-          disabled={enviando}
-          className="mt-6 w-full rounded-xl bg-accent px-4 py-3 font-medium text-paper disabled:opacity-60"
-        >
+        <button disabled={enviando} className="btn-accent press mt-6 w-full rounded-2xl px-4 py-3.5 font-medium text-paper disabled:opacity-60 anim-fade-up" style={{ animationDelay: "0.36s" }}>
           {enviando ? "Aguarde…" : criando ? "Criar conta" : "Entrar"}
         </button>
-        <button
-          type="button"
-          onClick={() => setCriando(!criando)}
-          className="mt-4 w-full text-sm text-muted underline-offset-4 hover:underline"
-        >
+        <button type="button" onClick={() => { setCriando(!criando); setErro(null); }} className="mt-4 w-full text-sm text-muted underline-offset-4 hover:underline">
           {criando ? "Já tenho conta" : "Primeiro acesso? Criar conta"}
         </button>
       </form>

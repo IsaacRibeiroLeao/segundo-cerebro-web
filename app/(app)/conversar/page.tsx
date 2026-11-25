@@ -122,7 +122,7 @@ export default function Conversar() {
         />
         <button
           disabled={enviando || !texto.trim()}
-          className="press rounded-xl bg-accent px-5 font-medium text-paper disabled:opacity-50"
+          className="press btn-accent rounded-xl px-5 font-medium text-paper disabled:opacity-50"
         >
           Enviar
         </button>
