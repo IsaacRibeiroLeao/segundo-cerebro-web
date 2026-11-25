@@ -17,7 +17,7 @@ export function TextoComCitacoes({ texto, fontes }: { texto: string; fontes: Fon
             <Link
               key={i}
               href={`/notas#${fonte.id}`}
-              className="mx-0.5 rounded-md bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent align-baseline"
+              className="press mx-0.5 rounded-md bg-accent-soft px-1.5 py-0.5 align-baseline text-xs font-medium text-accent"
               title={fonte.trecho}
             >
               {fonte.n}
@@ -34,18 +34,15 @@ export function ListaFontes({ fontes }: { fontes: Fonte[] }) {
   if (!fontes.length) return null;
   return (
     <ul className="mt-3 space-y-1.5">
-      {fontes.map((f) => (
-        <li key={f.id}>
-          <Link
-            href={`/notas#${f.id}`}
-            className="flex gap-2 text-sm text-muted hover:text-ink"
-          >
+      {fontes.map((f, i) => (
+        <li key={f.id} className="anim-fade-up" style={{ animationDelay: `${i * 35}ms` }}>
+          <Link href={`/notas#${f.id}`} className="flex gap-2 text-sm text-muted hover:text-ink">
             <span className="mt-0.5 h-5 min-w-5 rounded-md bg-accent-soft text-center text-xs font-medium leading-5 text-accent">
               {f.n}
             </span>
             <span className="line-clamp-2">
               {formatarData(f.created_at)}
-              {f.referencias?.length ? ` · ${f.referencias.join(", ")}` : ""} — {f.trecho}
+              {f.referencias?.length ? ` · ${f.referencias.join(", ")}` : ""} — {f.motivo ?? f.trecho}
             </span>
           </Link>
         </li>

@@ -1,203 +1,316 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useMemo, useState } from "react";
 import { formatarData } from "@/lib/cerebro";
-import type { NotaComVetor } from "@/lib/types";
+import { useDados } from "@/lib/dados";
+import { calcularLayout, corDoTema } from "@/lib/grafo";
+import { GRUPO, NOMES_LIVROS, passagemPrincipal, type Conexao, type GrupoConexao, type Nota } from "@/lib/types";
+import { ROTULO_GRUPO } from "@/components/Conexoes";
+import { Passagem } from "@/components/Passagem";
+import { Pensando } from "@/components/Pensando";
 
-type No = { id: string; x: number; y: number; nota: NotaComVetor };
-type Aresta = { a: number; b: number; s: number };
+const L = 900;
+const A = 620;
 
-const L = 800;
-const A = 560;
+type No = {
+  nota: Nota;
+  x: number;
+  y: number;
+  r: number;
+  cor: string;
+  grau: number;
+  etiqueta: string;
+  tema: string | null;
+};
+type Aresta = { chave: string; a: string; b: string; conexoes: Conexao[]; peso: number; grupo: GrupoConexao };
 
-function parseVetor(v: string | null): number[] | null {
-  if (!v) return null;
-  try {
-    return JSON.parse(v) as number[];
-  } catch {
-    return null;
-  }
-}
+const ESTILO_GRUPO: Record<GrupoConexao, { cor: string; dash?: string }> = {
+  sentido: { cor: "var(--accent)" },
+  passagem: { cor: "var(--sage)", dash: "7 5" },
+  tema: { cor: "var(--muted)", dash: "2 5" },
+};
+const PRIORIDADE: GrupoConexao[] = ["passagem", "sentido", "tema"];
 
-function dot(a: number[], b: number[]) {
-  let s = 0;
-  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-  return s;
-}
+const PERIODOS = [
+  { id: "30", nome: "30 dias", dias: 30 },
+  { id: "90", nome: "90 dias", dias: 90 },
+  { id: "365", nome: "1 ano", dias: 365 },
+  { id: "tudo", nome: "Tudo", dias: 0 },
+];
 
-function layout(n: number, arestas: Aresta[]): { x: number; y: number }[] {
-  const pos = Array.from({ length: n }, (_, i) => {
-    const ang = (i / Math.max(n, 1)) * Math.PI * 2;
-    return { x: L / 2 + Math.cos(ang) * 200, y: A / 2 + Math.sin(ang) * 160 };
-  });
-  for (let it = 0; it < 250; it++) {
-    const f = pos.map(() => ({ x: 0, y: 0 }));
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        const dx = pos[i].x - pos[j].x;
-        const dy = pos[i].y - pos[j].y;
-        const d2 = Math.max(dx * dx + dy * dy, 25);
-        const r = 6000 / d2;
-        const d = Math.sqrt(d2);
-        f[i].x += (dx / d) * r;
-        f[i].y += (dy / d) * r;
-        f[j].x -= (dx / d) * r;
-        f[j].y -= (dy / d) * r;
-      }
-    }
-    for (const e of arestas) {
-      const dx = pos[e.b].x - pos[e.a].x;
-      const dy = pos[e.b].y - pos[e.a].y;
-      const d = Math.sqrt(dx * dx + dy * dy) || 1;
-      const k = (d - 90) * 0.02 * (0.5 + e.s);
-      f[e.a].x += (dx / d) * k;
-      f[e.a].y += (dy / d) * k;
-      f[e.b].x -= (dx / d) * k;
-      f[e.b].y -= (dy / d) * k;
-    }
-    for (let i = 0; i < n; i++) {
-      f[i].x += (L / 2 - pos[i].x) * 0.01;
-      f[i].y += (A / 2 - pos[i].y) * 0.01;
-      pos[i].x = Math.min(L - 30, Math.max(30, pos[i].x + Math.max(-12, Math.min(12, f[i].x))));
-      pos[i].y = Math.min(A - 30, Math.max(30, pos[i].y + Math.max(-12, Math.min(12, f[i].y))));
-    }
-  }
-  return pos;
+function etiqueta(n: Nota) {
+  const p = passagemPrincipal(n);
+  if (p) return p.rotulo;
+  const palavras = n.conteudo.replace(/\s+/g, " ").trim().split(" ").slice(0, 3).join(" ");
+  return palavras.length > 22 ? `${palavras.slice(0, 21)}…` : palavras;
 }
 
 export default function Mapa() {
-  const [notas, setNotas] = useState<NotaComVetor[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [limiar, setLimiar] = useState(0.62);
-  const [sel, setSel] = useState<string | null>(null);
+  const { notas, conexoes, erro } = useDados();
+  const [periodo, setPeriodo] = useState("tudo");
+  const [tag, setTag] = useState<string | null>(null);
+  const [grupos, setGrupos] = useState<Record<GrupoConexao, boolean>>({ sentido: true, passagem: true, tema: true });
+  const [soConectadas, setSoConectadas] = useState(false);
+  const [sel, setSel] = useState<{ tipo: "no" | "aresta"; id: string } | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
-  useEffect(() => {
-    supabase
-      .from("sc_notas")
-      .select("id, conteudo, referencias, tags, reflexao, created_at, embedding")
-      .not("embedding", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        setNotas((data ?? []) as NotaComVetor[]);
-        setCarregando(false);
-      });
-  }, []);
+  const todasTags = useMemo(() => {
+    const f = new Map<string, number>();
+    for (const n of notas ?? []) for (const t of n.tags) f.set(t, (f.get(t) ?? 0) + 1);
+    return [...f.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([t]) => t);
+  }, [notas]);
 
-  const { nos, arestas } = useMemo(() => {
-    const vet = notas.map((n) => parseVetor(n.embedding));
-    const ar: Aresta[] = [];
-    for (let i = 0; i < notas.length; i++) {
-      for (let j = i + 1; j < notas.length; j++) {
-        const a = vet[i];
-        const b = vet[j];
-        if (!a || !b) continue;
-        const s = dot(a, b);
-        if (s >= limiar) ar.push({ a: i, b: j, s });
-      }
+  const { nos, arestas, temas } = useMemo(() => {
+    const dias = PERIODOS.find((p) => p.id === periodo)?.dias ?? 0;
+    const corte = dias ? Date.now() - dias * 86400000 : 0;
+    let base = (notas ?? []).filter((n) => new Date(n.created_at).getTime() >= corte);
+    if (tag) base = base.filter((n) => n.tags.includes(tag));
+    const ids = new Set(base.map((n) => n.id));
+
+    // Uma aresta por par, guardando todos os motivos.
+    const porPar = new Map<string, Aresta>();
+    for (const c of conexoes) {
+      if (!grupos[GRUPO[c.tipo]] || !ids.has(c.a) || !ids.has(c.b)) continue;
+      const chave = `${c.a}|${c.b}`;
+      const atual = porPar.get(chave) ?? { chave, a: c.a, b: c.b, conexoes: [], peso: 0, grupo: GRUPO[c.tipo] };
+      atual.conexoes.push(c);
+      atual.peso = Math.max(atual.peso, c.peso);
+      if (PRIORIDADE.indexOf(GRUPO[c.tipo]) < PRIORIDADE.indexOf(atual.grupo)) atual.grupo = GRUPO[c.tipo];
+      porPar.set(chave, atual);
     }
-    const pos = layout(notas.length, ar);
-    const ns: No[] = notas.map((nota, i) => ({ id: nota.id, x: pos[i].x, y: pos[i].y, nota }));
-    return { nos: ns, arestas: ar };
-  }, [notas, limiar]);
+    const arestasTodas = [...porPar.values()];
+    const grau = new Map<string, number>();
+    for (const e of arestasTodas) {
+      grau.set(e.a, (grau.get(e.a) ?? 0) + 1);
+      grau.set(e.b, (grau.get(e.b) ?? 0) + 1);
+    }
+    if (soConectadas) base = base.filter((n) => grau.get(n.id));
+    const idx = new Map(base.map((n, i) => [n.id, i]));
+    const arestasVisiveis = arestasTodas.filter((e) => idx.has(e.a) && idx.has(e.b));
+    const pos = calcularLayout(base.length, arestasVisiveis.map((e) => ({ a: idx.get(e.a)!, b: idx.get(e.b)!, s: e.peso })), L, A);
 
-  const selecionada = nos.find((n) => n.id === sel)?.nota;
-  const ligadas = useMemo(() => {
-    const set = new Set<string>();
-    if (!sel) return set;
-    arestas.forEach((e) => {
-      if (nos[e.a].id === sel) set.add(nos[e.b].id);
-      if (nos[e.b].id === sel) set.add(nos[e.a].id);
+    const nosCalc: No[] = base.map((n, i) => {
+      const p = passagemPrincipal(n);
+      const livro = n.sc_nota_refs[0] ? NOMES_LIVROS[n.sc_nota_refs[0].livro] : null;
+      const tema = n.tags[0] ?? livro;
+      const g = grau.get(n.id) ?? 0;
+      return { nota: n, x: pos[i].x, y: pos[i].y, r: Math.min(26, 11 + 3.2 * Math.sqrt(g)), cor: corDoTema(tema), grau: g, etiqueta: etiqueta(n), tema: p || tema ? tema : null };
     });
-    return set;
-  }, [sel, arestas, nos]);
+    const t = new Map<string, string>();
+    for (const n of nosCalc) if (n.tema && !t.has(n.tema)) t.set(n.tema, n.cor);
+    return { nos: nosCalc, arestas: arestasVisiveis, temas: [...t.entries()].slice(0, 8) };
+  }, [notas, conexoes, periodo, tag, grupos, soConectadas]);
+
+  const porId = useMemo(() => new Map(nos.map((n) => [n.nota.id, n])), [nos]);
+  const foco = hover ?? (sel?.tipo === "no" ? sel.id : null);
+  const vizinhos = useMemo(() => {
+    const s = new Set<string>();
+    if (!foco) return s;
+    s.add(foco);
+    for (const e of arestas) {
+      if (e.a === foco) s.add(e.b);
+      if (e.b === foco) s.add(e.a);
+    }
+    return s;
+  }, [foco, arestas]);
+  const arestaSel = sel?.tipo === "aresta" ? arestas.find((e) => e.chave === sel.id) : undefined;
+  const noSel = sel?.tipo === "no" ? porId.get(sel.id) : undefined;
+
+  const mostrarRotulos = nos.length <= 36;
+  const w = L / zoom;
+  const h = A / zoom;
+  const viewBox = `${(L - w) / 2} ${(A - h) / 2} ${w} ${h}`;
+
+  const chip = (ativo: boolean) => `press rounded-full border px-3 py-1 text-sm ${ativo ? "border-accent bg-accent text-paper" : "border-line text-muted hover:text-ink"}`;
+
+  function conexoesDoNo(id: string) {
+    return arestas
+      .filter((e) => e.a === id || e.b === id)
+      .map((e) => ({ aresta: e, outro: e.a === id ? e.b : e.a }))
+      .sort((x, y) => y.aresta.peso - x.aresta.peso);
+  }
 
   return (
     <div>
       <h1 className="font-serif text-3xl">Mapa</h1>
-      <p className="mt-1 text-muted">Cada ponto é uma nota. Linhas ligam notas com sentido parecido.</p>
+      <p className="mt-1 text-muted">Toque em uma ligação para ver por que as duas notas se conectam.</p>
 
-      {carregando ? (
-        <p className="mt-8 text-muted">Carregando…</p>
-      ) : notas.length < 2 ? (
-        <p className="mt-8 text-muted">
-          O mapa aparece quando você tiver pelo menos duas notas conectadas.
-        </p>
-      ) : (
-        <>
-          <div className="mt-5 flex items-center gap-3 text-sm text-muted">
-            <span>Mais conexões</span>
-            <input
-              type="range"
-              min={0.45}
-              max={0.85}
-              step={0.01}
-              value={limiar}
-              onChange={(e) => setLimiar(Number(e.target.value))}
-              className="flex-1 accent-[var(--accent)]"
-              aria-label="Rigor das conexões"
-            />
-            <span>Só as mais fortes</span>
+      <div className="mt-4 space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {PERIODOS.map((p) => <button key={p.id} onClick={() => setPeriodo(p.id)} className={chip(periodo === p.id)}>{p.nome}</button>)}
+        </div>
+        {todasTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setTag(null)} className={chip(!tag)}>Todas as tags</button>
+            {todasTags.map((t) => <button key={t} onClick={() => setTag(tag === t ? null : t)} className={chip(tag === t)}>#{t}</button>)}
           </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {(Object.keys(ROTULO_GRUPO) as GrupoConexao[]).map((g) => (
+            <button key={g} onClick={() => setGrupos((s) => ({ ...s, [g]: !s[g] }))} aria-pressed={grupos[g]}
+              className={`press inline-flex items-center gap-2 rounded-full border px-3 py-1 ${grupos[g] ? "border-line text-ink" : "border-line text-muted opacity-60"}`}>
+              <svg width="26" height="8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" stroke={ESTILO_GRUPO[g].cor} strokeWidth="2.4" strokeDasharray={ESTILO_GRUPO[g].dash} strokeLinecap="round" /></svg>
+              {ROTULO_GRUPO[g].nome}
+            </button>
+          ))}
+          <label className="ml-1 inline-flex items-center gap-2 text-muted">
+            <input type="checkbox" checked={soConectadas} onChange={(e) => setSoConectadas(e.target.checked)} className="accent-[var(--accent)]" />
+            Só notas conectadas
+          </label>
+        </div>
+      </div>
 
-          <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-card">
-            <svg viewBox={`0 0 ${L} ${A}`} className="w-full">
-              {arestas.map((e, i) => {
-                const forte = sel && (nos[e.a].id === sel || nos[e.b].id === sel);
-                return (
-                  <line
-                    key={i}
-                    x1={nos[e.a].x}
-                    y1={nos[e.a].y}
-                    x2={nos[e.b].x}
-                    y2={nos[e.b].y}
-                    stroke="var(--accent)"
-                    strokeOpacity={forte ? 0.9 : 0.25}
-                    strokeWidth={forte ? 2 : 1 + e.s}
-                  />
-                );
-              })}
-              {nos.map((n) => {
-                const ativo = n.id === sel;
-                const vizinho = ligadas.has(n.id);
-                return (
-                  <g key={n.id} onClick={() => setSel(ativo ? null : n.id)} className="cursor-pointer">
-                    <circle
-                      cx={n.x}
-                      cy={n.y}
-                      r={ativo ? 11 : 8}
-                      fill={ativo || vizinho ? "var(--accent)" : "var(--sage)"}
-                      fillOpacity={sel && !ativo && !vizinho ? 0.35 : 1}
-                    />
-                    <circle cx={n.x} cy={n.y} r={18} fill="transparent" />
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            {nos.length} notas · {arestas.length} conexões
-          </p>
+      {erro && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
+      {!notas && <p className="mt-8"><Pensando texto="Montando o mapa" /></p>}
 
-          {selecionada && (
-            <div className="mt-4 rounded-2xl border border-accent/40 bg-accent-soft p-4">
-              <p className="text-xs text-muted">
-                {formatarData(selecionada.created_at)}
-                {selecionada.referencias.length ? ` · ${selecionada.referencias.join(", ")}` : ""}
-              </p>
-              <p className="mt-1 line-clamp-5 font-serif">{selecionada.conteudo}</p>
-              <p className="mt-2 text-sm text-muted">{ligadas.size} conexão(ões) com outras notas</p>
-              <Link
-                href={`/notas#${selecionada.id}`}
-                className="mt-2 inline-block text-sm font-medium text-accent underline-offset-4 hover:underline"
-              >
-                Abrir nota →
-              </Link>
+      {notas && (
+        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_320px]">
+          <div className="relative overflow-hidden rounded-2xl border border-line bg-card">
+            {nos.length === 0 ? (
+              <p className="p-10 text-center text-muted">{notas.length === 0 ? "O mapa aparece quando você escrever suas primeiras notas." : "Nada neste recorte."}</p>
+            ) : (
+              <svg viewBox={viewBox} className="block h-auto w-full touch-manipulation" role="img" aria-label="Mapa de conexões entre as suas notas" onClick={() => setSel(null)}>
+                <g>
+                  {arestas.map((e) => {
+                    const a = porId.get(e.a)!;
+                    const b = porId.get(e.b)!;
+                    const est = ESTILO_GRUPO[e.grupo];
+                    const ativa = sel?.tipo === "aresta" && sel.id === e.chave;
+                    const dim = foco ? !(e.a === foco || e.b === foco) : sel?.tipo === "aresta" ? !ativa : false;
+                    return (
+                      <g key={e.chave} className="anim-fade-in" style={{ opacity: dim ? 0.12 : 1, transition: "opacity .2s" }}>
+                        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={est.cor} strokeDasharray={est.dash} strokeLinecap="round"
+                          strokeWidth={(ativa ? 2 : 1) + 2.2 * e.peso} opacity={ativa ? 1 : 0.75} />
+                        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={16} className="cursor-pointer"
+                          onClick={(ev) => { ev.stopPropagation(); setSel({ tipo: "aresta", id: e.chave }); }}>
+                          <title>{e.conexoes.map((c) => c.motivo).join(" · ")}</title>
+                        </line>
+                        {e.conexoes.length > 1 && (
+                          <g transform={`translate(${(a.x + b.x) / 2} ${(a.y + b.y) / 2})`} pointerEvents="none">
+                            <circle r="8" fill="var(--card)" stroke={est.cor} />
+                            <text textAnchor="middle" dy="3.5" fontSize="10" fill="var(--ink)">{e.conexoes.length}</text>
+                          </g>
+                        )}
+                      </g>
+                    );
+                  })}
+                </g>
+                <g>
+                  {nos.map((n, i) => {
+                    const p = passagemPrincipal(n.nota);
+                    const ativo = sel?.tipo === "no" && sel.id === n.nota.id;
+                    const dim = foco ? !vizinhos.has(n.nota.id) : false;
+                    const mostra = mostrarRotulos || vizinhos.has(n.nota.id) || ativo;
+                    return (
+                      <g key={n.nota.id} transform={`translate(${n.x} ${n.y})`} style={{ opacity: dim ? 0.25 : 1, transition: "opacity .2s" }}
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHover(n.nota.id)} onMouseLeave={() => setHover(null)}
+                        onClick={(ev) => { ev.stopPropagation(); setSel({ tipo: "no", id: n.nota.id }); }}>
+                        <g className="anim-pop" style={{ animationDelay: `${Math.min(i, 30) * 25}ms` }}>
+                          {ativo && <circle r={n.r + 9} fill={n.cor} className="anim-breathe" />}
+                          {p?.sugerida && <circle r={n.r + 4} fill="none" stroke={n.cor} strokeDasharray="3 3" strokeWidth="1.4" />}
+                          <circle r={n.r} fill={n.cor} stroke="var(--card)" strokeWidth="2.5" />
+                          {p && <text textAnchor="middle" dy={n.r > 15 ? 5 : 4} fontSize={n.r > 15 ? 14 : 11} fill="#fffdf8" pointerEvents="none">{p.sugerida ? "✦" : "❖"}</text>}
+                          {mostra && (
+                            <text y={n.r + 14} textAnchor="middle" fontSize="11" fill="var(--ink)" stroke="var(--card)" strokeWidth="3" paintOrder="stroke" pointerEvents="none">
+                              {n.etiqueta}
+                            </text>
+                          )}
+                          <title>{n.nota.conteudo.slice(0, 120)}</title>
+                        </g>
+                      </g>
+                    );
+                  })}
+                </g>
+              </svg>
+            )}
+
+            <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-xl border border-line bg-card/95 text-lg shadow-sm">
+              <button onClick={() => setZoom((z) => Math.min(2.2, z + 0.25))} className="press px-3 py-1 hover:bg-accent-soft" aria-label="Aproximar">+</button>
+              <button onClick={() => setZoom((z) => Math.max(0.8, z - 0.25))} className="press border-t border-line px-3 py-1 hover:bg-accent-soft" aria-label="Afastar">−</button>
             </div>
+          </div>
+
+          {(noSel || arestaSel) && (
+            <aside key={sel?.id} className="anim-panel fixed inset-x-0 bottom-16 z-20 max-h-[62vh] overflow-y-auto rounded-t-3xl border border-line bg-card p-5 shadow-2xl md:static md:z-auto md:max-h-[640px] md:rounded-2xl md:shadow-none">
+              <button onClick={() => setSel(null)} className="press float-right text-sm text-muted hover:text-ink" aria-label="Fechar">Fechar ✕</button>
+
+              {noSel && (
+                <div className="space-y-4">
+                  <p className="text-xs text-muted">{formatarData(noSel.nota.created_at)}</p>
+                  <p className="whitespace-pre-wrap font-serif leading-relaxed">{noSel.nota.conteudo}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {noSel.nota.sc_nota_refs.map((r) => <Passagem key={r.rotulo} rotulo={r.rotulo} sugerida={r.origem === "ia"} motivo={noSel.nota.passagem_ia?.motivo} />)}
+                  </div>
+                  {noSel.nota.tags.length > 0 && <p className="flex flex-wrap gap-1.5 text-xs text-muted">{noSel.nota.tags.map((t) => <span key={t}>#{t}</span>)}</p>}
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Por que está ligada</p>
+                    {conexoesDoNo(noSel.nota.id).length === 0 && <p className="text-sm text-muted">Nenhuma conexão neste recorte.</p>}
+                    <ul className="space-y-2">
+                      {conexoesDoNo(noSel.nota.id).map(({ aresta, outro }) => {
+                        const o = porId.get(outro);
+                        return (
+                          <li key={aresta.chave}>
+                            <button onClick={() => setSel({ tipo: "aresta", id: aresta.chave })} className="press block w-full rounded-xl border border-line px-3 py-2 text-left text-sm hover:border-accent/50">
+                              {aresta.conexoes.map((c) => (
+                                <span key={c.id} className="block"><span className={`text-xs font-medium uppercase tracking-wide ${ROTULO_GRUPO[GRUPO[c.tipo]].cor}`}>{ROTULO_GRUPO[GRUPO[c.tipo]].nome}</span> {c.motivo}</span>
+                              ))}
+                              {o && <span className="mt-1 line-clamp-1 block text-muted">{o.nota.conteudo}</span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                  <Link href={`/notas#${noSel.nota.id}`} className="press inline-block text-sm font-medium text-accent hover:underline">Abrir nota →</Link>
+                </div>
+              )}
+
+              {arestaSel && (
+                <div className="space-y-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Por que estas notas se ligam</p>
+                  <ul className="space-y-2">
+                    {arestaSel.conexoes.map((c) => (
+                      <li key={c.id} className="rounded-xl bg-accent-soft p-3 text-sm">
+                        <span className={`text-xs font-medium uppercase tracking-wide ${ROTULO_GRUPO[GRUPO[c.tipo]].cor}`}>{ROTULO_GRUPO[GRUPO[c.tipo]].nome}</span>
+                        <span className="block">{c.motivo}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {[arestaSel.a, arestaSel.b].map((id) => {
+                    const n = porId.get(id);
+                    if (!n) return null;
+                    return (
+                      <button key={id} onClick={() => setSel({ tipo: "no", id })} className="press block w-full rounded-xl border border-line p-3 text-left text-sm hover:border-accent/50">
+                        <span className="text-xs text-muted">{formatarData(n.nota.created_at)} · {n.etiqueta}</span>
+                        <span className="mt-1 line-clamp-3 block font-serif">{n.nota.conteudo}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </aside>
           )}
-        </>
+        </div>
+      )}
+
+      {nos.length > 0 && (
+        <div className="anim-fade-in mt-4 rounded-2xl border border-line bg-card p-4 text-xs text-muted">
+          <p className="font-medium text-ink">Como ler o mapa</p>
+          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+            <li><span aria-hidden="true">❖</span> nota com passagem sua · <span aria-hidden="true">✦</span> passagem sugerida (anel tracejado)</li>
+            <li>Tamanho = quantas ligações a nota tem</li>
+            <li>Cor = tema principal (primeira tag ou livro)</li>
+            <li>Linha contínua = sentido · tracejada = passagem · pontilhada = tema</li>
+          </ul>
+          {temas.length > 0 && (
+            <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+              {temas.map(([t, c]) => <span key={t} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: c }} aria-hidden="true" />{t}</span>)}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

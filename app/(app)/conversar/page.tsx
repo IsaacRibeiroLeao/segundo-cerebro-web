@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { conversar } from "@/lib/cerebro";
 import type { Mensagem } from "@/lib/types";
 import { ListaFontes, TextoComCitacoes } from "@/components/Citacoes";
+import { Pensando } from "@/components/Pensando";
 
 const SUGESTOES = [
   "O que mais se repete nas minhas anotações?",
@@ -76,7 +77,7 @@ export default function Conversar() {
               <button
                 key={s}
                 onClick={() => enviar(s)}
-                className="rounded-2xl border border-line bg-card px-4 py-3 text-left text-sm hover:border-accent/60"
+                className="press lift rounded-2xl border border-line bg-card px-4 py-3 text-left text-sm hover:border-accent/60"
               >
                 {s}
               </button>
@@ -90,18 +91,18 @@ export default function Conversar() {
 
         {msgs.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-accent px-4 py-3 text-paper">
+            <div key={i} className="anim-fade-up ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-accent px-4 py-3 text-paper">
               <p className="whitespace-pre-wrap">{m.content}</p>
             </div>
           ) : (
-            <div key={i} className="max-w-[92%] rounded-2xl rounded-bl-md border border-line bg-card px-4 py-3">
+            <div key={i} className="anim-fade-up max-w-[92%] rounded-2xl rounded-bl-md border border-line bg-card px-4 py-3">
               <TextoComCitacoes texto={m.content} fontes={m.fontes ?? []} />
               <ListaFontes fontes={(m.fontes ?? []).filter((f) => m.content.includes(`[${f.n}]`))} />
             </div>
           ),
         )}
 
-        {enviando && <p className="text-sm text-muted">Pensando junto com você…</p>}
+        {enviando && <p className="anim-fade-in text-sm"><Pensando texto="Pensando junto com você" /></p>}
         {erro && <p className="rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
         <div ref={fim} />
       </div>
@@ -121,7 +122,7 @@ export default function Conversar() {
         />
         <button
           disabled={enviando || !texto.trim()}
-          className="rounded-xl bg-accent px-5 font-medium text-paper disabled:opacity-50"
+          className="press rounded-xl bg-accent px-5 font-medium text-paper disabled:opacity-50"
         >
           Enviar
         </button>
