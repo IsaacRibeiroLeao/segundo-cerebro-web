@@ -6,7 +6,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
+const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("VITE_GEMINI_API_KEY");
 const GEN_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const EMB_MODEL = Deno.env.get("GEMINI_EMBED_MODEL") ?? "gemini-embedding-001";
 const DIMS = 768;
