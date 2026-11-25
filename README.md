@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Segundo Cérebro (web)
 
-## Getting Started
+Anotações de estudo bíblico conectadas por IA. Você escreve o que o Espírito Santo fala durante a leitura; o sistema liga cada nota às anteriores, mostra um mapa de conexões e permite conversar com as próprias anotações.
 
-First, run the development server:
+Stack: Next.js (App Router) + Tailwind + Supabase (Auth, Postgres/pgvector, Edge Functions) + Gemini (via Edge Function).
+
+## Rodar localmente
 
 ```bash
+cp .env.example .env.local   # preencha com a URL e a chave publicável do Supabase
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variáveis de ambiente (Vercel e local)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variável | Valor |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | chave publicável (`sb_publishable_...`) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A chave do Gemini **não** fica no site: ela é um secret da Edge Function (`GEMINI_API_KEY`).
 
-## Learn More
+## Backend (Supabase)
 
-To learn more about Next.js, take a look at the following resources:
+- Tabela `sc_notas` com RLS por usuário e coluna `embedding vector(768)` (índice HNSW).
+- Função SQL `sc_buscar_notas` (busca por similaridade).
+- Edge Function `cerebro` (`supabase/functions/cerebro/index.ts`), com as ações `processar`, `conversar` e `reprocessar`.
+- Secrets da função: `GEMINI_API_KEY` (obrigatório); `GEMINI_MODEL` (padrão `gemini-2.5-flash`) e `GEMINI_EMBED_MODEL` (padrão `gemini-embedding-001`) são opcionais.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+O SQL das tabelas está em `supabase/migrations/`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Importe o repositório na Vercel, defina as duas variáveis acima e publique. Depois do primeiro cadastro, desative novos cadastros em Supabase → Authentication → Sign In / Providers → Email → "Allow new users to sign up".
