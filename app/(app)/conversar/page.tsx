@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { conversar } from "@/lib/cerebro";
 import type { Mensagem } from "@/lib/types";
 import { ListaFontes, TextoComCitacoes } from "@/components/Citacoes";
-import { Pensando } from "@/components/Pensando";
+import Image from "next/image";
+import { Avatar } from "@/components/Avatar";
 
 const SUGESTOES = [
   "O que mais se repete nas minhas anotações?",
@@ -91,18 +92,33 @@ export default function Conversar() {
 
         {msgs.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="anim-fade-up ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-accent px-4 py-3 text-paper">
-              <p className="whitespace-pre-wrap">{m.content}</p>
+            <div key={i} className="anim-fade-up ml-auto flex max-w-[88%] items-end gap-2">
+              <div className="rounded-2xl rounded-br-md bg-accent px-4 py-3 text-paper shadow-sm">
+                <p className="whitespace-pre-wrap">{m.content}</p>
+              </div>
+              <Avatar tamanho={28} />
             </div>
           ) : (
-            <div key={i} className="anim-fade-up max-w-[92%] rounded-2xl rounded-bl-md border border-line bg-card px-4 py-3">
-              <TextoComCitacoes texto={m.content} fontes={m.fontes ?? []} />
-              <ListaFontes fontes={(m.fontes ?? []).filter((f) => m.content.includes(`[${f.n}]`))} />
+            <div key={i} className="anim-fade-up flex max-w-[94%] items-end gap-2">
+              <Image src="/logo.png" alt="" width={28} height={28} className="shrink-0 rounded-full" />
+              <div className="min-w-0 rounded-2xl rounded-bl-md border border-line bg-card px-4 py-3 shadow-sm">
+                <TextoComCitacoes texto={m.content} fontes={m.fontes ?? []} />
+                <ListaFontes fontes={(m.fontes ?? []).filter((f) => m.content.includes(`[${f.n}]`))} />
+              </div>
             </div>
           ),
         )}
 
-        {enviando && <p className="anim-fade-in text-sm"><Pensando texto="Pensando junto com você" /></p>}
+        {enviando && (
+          <div className="anim-fade-up flex items-end gap-2" role="status" aria-label="Claude está digitando">
+            <Image src="/logo.png" alt="" width={28} height={28} className="shrink-0 rounded-full" />
+            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-line bg-card px-4 py-3.5 shadow-sm" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="h-2 w-2 rounded-full bg-accent" style={{ animation: "pulo 1s infinite ease-in-out", animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </div>
+          </div>
+        )}
         {erro && <p className="rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
         <div ref={fim} />
       </div>

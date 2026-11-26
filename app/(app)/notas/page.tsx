@@ -85,7 +85,7 @@ function Cartao({
   return (
     <li
       id={nota.id}
-      className={`anim-fade-up scroll-mt-6 rounded-2xl border bg-card transition-colors ${destaque ? "border-accent shadow-[0_0_0_3px_var(--accent-soft)]" : "border-line"}`}
+      className={`anim-fade-up lift scroll-mt-6 rounded-2xl border bg-card transition-colors ${destaque ? "border-accent shadow-[0_0_0_3px_var(--accent-soft)]" : "border-line"}`}
       style={{ animationDelay: `${Math.min(indice, 8) * 40}ms` }}
     >
       <button onClick={aoAlternar} aria-expanded={aberta} className="block w-full p-4 text-left">
@@ -102,7 +102,7 @@ function Cartao({
       </button>
 
       {aberta && (
-        <div className="anim-fade-in space-y-5 border-t border-line p-4">
+        <div className="anim-expand space-y-5 border-t border-line p-4">
           {editando ? (
             <div className="space-y-2">
               <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={6}

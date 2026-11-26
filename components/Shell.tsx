@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { Icon } from "./Icon";
+import { Avatar } from "./Avatar";
+import { usePerfil } from "@/lib/perfil";
 
 const itens = [
   { href: "/", nome: "Hoje", icone: "hoje" },
@@ -16,6 +18,8 @@ const itens = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { perfil } = usePerfil();
+  const nomePerfil = perfil?.nome;
   const ativo = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
@@ -39,15 +43,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          className="mt-auto flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted hover:text-ink"
-        >
-          <Icon nome="sair" />
-          Sair
-        </button>
+        <Link href="/perfil" className={`press mt-auto flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${ativo("/perfil") ? "bg-accent-soft text-accent" : "text-muted hover:text-ink hover:bg-accent-soft/50"}`}>
+          <Avatar tamanho={32} />
+          <span className="truncate">{nomePerfil || "Meu perfil"}</span>
+        </Link>
       </aside>
 
+      <Link href="/perfil" aria-label="Meu perfil" className="press md:hidden fixed right-4 top-4 z-10 rounded-full shadow-md">
+        <Avatar tamanho={40} />
+      </Link>
       <main className="flex-1 pb-28 md:pb-0">
         <div key={pathname} className={`anim-fade-in mx-auto w-full px-5 py-8 md:py-12 ${pathname.startsWith("/mapa") ? "max-w-5xl" : "max-w-3xl"}`}>{children}</div>
       </main>

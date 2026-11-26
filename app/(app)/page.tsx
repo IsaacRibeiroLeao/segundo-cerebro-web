@@ -13,6 +13,7 @@ import { Passagem } from "@/components/Passagem";
 import { Pensando } from "@/components/Pensando";
 import { RevisaoCard } from "@/components/RevisaoCard";
 import { TagsSugeridas } from "@/components/TagsSugeridas";
+import { usePerfil } from "@/lib/perfil";
 import { useDitado } from "@/components/useDitado";
 
 function saudacao() {
@@ -87,6 +88,8 @@ export default function Hoje() {
 
   const notaResultado = resultado ? notas?.find((n) => n.id === resultado.notaId) : undefined;
   const recentes = notas?.slice(0, 4) ?? [];
+  const { perfil } = usePerfil();
+  const nomeUsuario = perfil?.nome?.split(" ")[0];
 
   return (
     <div>
@@ -94,7 +97,7 @@ export default function Hoje() {
         {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
       </p>
       <h1 className="anim-fade-up mt-1 font-serif text-3xl md:text-4xl" style={{ animationDelay: "40ms" }}>
-        {saudacao()}.
+        {saudacao()}{nomeUsuario ? `, ${nomeUsuario}` : ""}.
       </h1>
       <p className="anim-fade-up mt-2 text-muted" style={{ animationDelay: "80ms" }}>
         O que você leu ou sentiu hoje?
