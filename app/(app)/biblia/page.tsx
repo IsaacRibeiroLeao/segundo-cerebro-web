@@ -10,6 +10,7 @@ import { CAPITULOS, NOMES_LIVROS, TOTAL_CAPITULOS, proximoNaoLido, vizinho } fro
 import type { Versiculos } from "@/lib/types";
 import { Pensando } from "@/components/Pensando";
 
+const PRIMEIRO_NT = 39;
 const POS = "sc_biblia_pos_v1";
 const RASCUNHO = "sc_rascunho_v1";
 
@@ -92,15 +93,37 @@ export default function Biblia() {
     router.push("/");
   }
 
+  const novo = pos.livro >= PRIMEIRO_NT;
+  const [copiado, setCopiado] = useState(false);
+
+  async function compartilhar() {
+    const ver = texto?.versiculos.filter((v) => !selecionados.size || selecionados.has(v.n)) ?? [];
+    const msg = `${ver.map((v) => `${v.n} ${v.texto}`).join(" ")}\n— ${rotuloSelecao()}`;
+    try {
+      if (navigator.share) await navigator.share({ text: msg });
+      else { await navigator.clipboard.writeText(msg); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }
+    } catch { /* cancelado */ }
+  }
+
   const select = "rounded-xl border border-line bg-card px-3 py-2 outline-none transition focus:border-accent";
 
   return (
     <div>
       <h1 className="font-serif text-3xl">Bíblia</h1>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div role="tablist" className="mt-4 inline-flex rounded-2xl border border-line bg-card p-1 text-sm">
+        {[["Antigo Testamento", false], ["Novo Testamento", true]].map(([nome, nt]) => (
+          <button key={String(nome)} role="tab" aria-selected={novo === nt}
+            onClick={() => novo !== nt && setPos({ livro: nt ? PRIMEIRO_NT : 0, capitulo: 1 })}
+            className={`press rounded-xl px-3 py-1.5 transition ${novo === nt ? "btn-accent font-medium" : "text-muted"}`}>
+            {nome}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <select aria-label="Livro" value={pos.livro} onChange={(e) => setPos({ livro: Number(e.target.value), capitulo: 1 })} className={select}>
-          {NOMES_LIVROS.map((n, i) => <option key={n} value={i}>{n}</option>)}
+          {NOMES_LIVROS.map((n, i) => (i >= PRIMEIRO_NT) === novo && <option key={n} value={i}>{n}</option>)}
         </select>
         <select aria-label="Capítulo" value={pos.capitulo} onChange={(e) => setPos({ ...pos, capitulo: Number(e.target.value) })} className={select}>
           {Array.from({ length: CAPITULOS[pos.livro] }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
@@ -132,13 +155,16 @@ export default function Biblia() {
         )}
       </article>
 
-      <div className="glass sticky bottom-24 mt-6 flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 md:bottom-4">
+      <div className="sticky bottom-[5.5rem] z-[5] mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 shadow-lg md:bottom-4">
         <button onClick={() => alternar(pos.livro, pos.capitulo)} disabled={!lidos}
           className={`press rounded-xl px-4 py-2 text-sm font-medium ${lido ? "border border-accent text-accent" : "btn-accent"}`}>
           {lido ? "✓ Lido" : "Marcar como lido"}
         </button>
         <button onClick={anotar} disabled={!texto} className="press rounded-xl border border-line px-4 py-2 text-sm hover:bg-accent-soft disabled:opacity-40">
           Anotar sobre {selecionados.size ? rotuloSelecao() : "este capítulo"}
+        </button>
+        <button onClick={compartilhar} disabled={!texto} className="press rounded-xl border border-line px-4 py-2 text-sm hover:bg-accent-soft disabled:opacity-40">
+          {copiado ? "Copiado ✓" : "Compartilhar"}
         </button>
         {lido && seguinte && (
           <button onClick={() => setPos(seguinte)} className="press ml-auto text-sm text-accent">Próximo →</button>

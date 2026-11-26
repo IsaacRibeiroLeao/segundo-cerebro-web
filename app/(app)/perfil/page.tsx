@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { reduzirImagem, usePerfil } from "@/lib/perfil";
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
+import { useDados } from "@/lib/dados";
+import { useLeitura } from "@/lib/leitura";
 
 export default function PerfilPage() {
   const { perfil, salvar } = usePerfil();
@@ -14,9 +16,15 @@ export default function PerfilPage() {
   const [ok, setOk] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
+  const { notas } = useDados();
+  const { lidos } = useLeitura();
+  const [desde, setDesde] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? "");
+      if (data.user?.created_at) setDesde(new Date(data.user.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }));
+    });
   }, []);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -59,7 +67,20 @@ export default function PerfilPage() {
           <button onClick={() => salvar({ avatar: null })} className="mt-1 text-xs text-muted underline-offset-4 hover:underline">Remover foto</button>
         )}
 
-        <form onSubmit={guardarNome} className="mt-6 w-full max-w-sm text-left">
+        <div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-3">
+          {[
+            ["Notas", notas ? notas.length : "–"],
+            ["Capítulos lidos", lidos ? lidos.size : "–"],
+          ].map(([r, v]) => (
+            <div key={r} className="rounded-2xl border border-line bg-card px-3 py-3">
+              <p className="font-serif text-2xl text-accent">{v}</p>
+              <p className="text-xs text-muted">{r}</p>
+            </div>
+          ))}
+        </div>
+        {desde && <p className="mt-3 text-xs text-muted">Membro desde {desde}</p>}
+
+        <form onSubmit={guardarNome} className="mt-5 w-full max-w-sm text-left">
           <label className="text-sm text-muted" htmlFor="nome">Como devo te chamar?</label>
           <div className="campo mt-1.5 rounded-2xl border border-line bg-card px-4 py-3">
             <input id="nome" value={nome} maxLength={60} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome" className="w-full bg-transparent outline-none" />

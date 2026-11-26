@@ -15,6 +15,9 @@ import { RevisaoCard } from "@/components/RevisaoCard";
 import { TagsSugeridas } from "@/components/TagsSugeridas";
 import { usePerfil } from "@/lib/perfil";
 import { useDitado } from "@/components/useDitado";
+import { Tile } from "@/components/Tile";
+import { useLeitura } from "@/lib/leitura";
+import { NOMES_LIVROS, TOTAL_CAPITULOS, proximoNaoLido } from "@/lib/livros";
 
 function saudacao() {
   const h = new Date().getHours();
@@ -22,6 +25,22 @@ function saudacao() {
 }
 
 const RASCUNHO = "sc_rascunho_v1";
+
+function estatisticas(datas: string[]) {
+  const agora = new Date().getTime();
+  return { semana: datas.filter((d) => agora - new Date(d).getTime() < 7 * 864e5).length, sequencia: diasSeguidos(datas) };
+}
+
+// Dias seguidos (até hoje ou ontem) com ao menos uma nota.
+function diasSeguidos(datas: string[]) {
+  const dia = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const set = new Set(datas.map((d) => dia(new Date(d))));
+  const c = new Date();
+  if (!set.has(dia(c))) c.setDate(c.getDate() - 1);
+  let n = 0;
+  while (set.has(dia(c))) { n++; c.setDate(c.getDate() - 1); }
+  return n;
+}
 
 export default function Hoje() {
   const { notas, recarregar } = useDados();
@@ -35,6 +54,8 @@ export default function Hoje() {
   const [resultado, setResultado] = useState<(ResultadoProcesso & { notaId: string }) | null>(null);
   const [analisando, setAnalisando] = useState(false);
   const tentou = useRef(false);
+  const campo = useRef<HTMLTextAreaElement>(null);
+  const { lidos } = useLeitura();
   const rascunhoPronto = useRef(false);
 
   // Rascunho: o que está sendo escrito sobrevive a trocar de aba ou recarregar.
@@ -56,6 +77,10 @@ export default function Hoje() {
     }, 400);
     return () => clearTimeout(t);
   }, [conteudo, refs, tags]);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("novo")) campo.current?.focus();
+  }, []);
 
   const ditado = useDitado((t) => setConteudo((c) => (c ? `${c} ${t}` : t)));
 
@@ -118,6 +143,9 @@ export default function Hoje() {
   const recentes = notas?.slice(0, 4) ?? [];
   const { perfil } = usePerfil();
   const nomeUsuario = perfil?.nome?.split(" ")[0];
+  const { semana, sequencia } = estatisticas(notas?.map((n) => n.created_at) ?? []);
+  const lidosN = lidos?.size ?? 0;
+  const proximo = lidos ? proximoNaoLido(lidos) : null;
 
   return (
     <div>
@@ -131,13 +159,36 @@ export default function Hoje() {
         O que você leu ou sentiu hoje?
       </p>
 
+      {lidos && notas && (
+        <section className="cartao-ouro anim-fade-up mt-6 rounded-2xl p-5" style={{ animationDelay: "100ms" }}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-serif text-lg">Sua jornada continua</p>
+              <p className="mt-0.5 text-sm text-muted">
+                {lidosN} de {TOTAL_CAPITULOS} capítulos · {semana} {semana === 1 ? "nota" : "notas"} na semana · {sequencia} {sequencia === 1 ? "dia" : "dias"} seguidos
+              </p>
+            </div>
+            <Tile nome="biblia" tamanho={42} ativo />
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={lidosN} aria-valuemin={0} aria-valuemax={TOTAL_CAPITULOS} aria-label="Capítulos lidos">
+            <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.max(1, (lidosN / TOTAL_CAPITULOS) * 100)}%` }} />
+          </div>
+          {proximo && (
+            <Link href="/biblia" className="press mt-3 inline-block text-sm font-medium text-accent underline-offset-4 hover:underline">
+              Continuar em {NOMES_LIVROS[proximo.livro]} {proximo.capitulo} →
+            </Link>
+          )}
+        </section>
+      )}
+
       <form
         onSubmit={salvar}
-        className="anim-fade-up mt-6 rounded-2xl border border-line bg-card p-4 transition-shadow focus-within:shadow-[0_0_0_3px_var(--accent-soft)] md:p-5"
+        className="anim-fade-up mt-5 rounded-2xl border border-line bg-card p-4 transition-shadow focus-within:shadow-[0_0_0_3px_var(--accent-soft)] md:p-5"
         style={{ animationDelay: "120ms" }}
       >
         <div className="relative">
           <textarea
+            ref={campo}
             value={conteudo}
             onChange={(e) => setConteudo(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
@@ -252,12 +303,15 @@ export default function Hoje() {
               const p = passagemPrincipal(n);
               return (
                 <li key={n.id} className="anim-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
-                  <Link href={`/notas#${n.id}`} className="lift block rounded-2xl border border-line bg-card p-4 hover:border-accent/50">
-                    <p className="text-xs text-muted">
-                      {formatarData(n.created_at)}
-                      {p ? ` · ${p.rotulo}${p.sugerida ? " (sugerida)" : ""}` : ""}
-                    </p>
-                    <p className="mt-1 line-clamp-3 font-serif">{n.conteudo}</p>
+                  <Link href={`/notas#${n.id}`} className="lift flex items-start gap-3 rounded-2xl border border-line bg-card p-4 hover:border-accent/50">
+                    <Tile nome="notas" tamanho={38} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs text-muted">
+                        {formatarData(n.created_at)}
+                        {p ? ` · ${p.rotulo}${p.sugerida ? " (sugerida)" : ""}` : ""}
+                      </span>
+                      <span className="mt-1 line-clamp-3 block font-serif">{n.conteudo}</span>
+                    </span>
                   </Link>
                 </li>
               );

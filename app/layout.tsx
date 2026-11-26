@@ -21,7 +21,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable} h-full antialiased`}>
+    <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('sc_tema');if(t)document.documentElement.dataset.theme=t==='claro'?'light':'dark'}catch(e){}" }} />
+      </head>
       <body className="min-h-full">{children}<RegistrarSW /></body>
     </html>
   );

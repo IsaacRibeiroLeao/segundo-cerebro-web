@@ -133,7 +133,7 @@ export default function LinhaDoTempo() {
           <div className="relative mt-8 ml-3 border-l border-line pl-6">
             {grupos.map(([mes, itens], gi) => (
               <section key={mes} className="mb-8">
-                <h2 className="anim-fade-up -ml-[34px] mb-4 flex items-center gap-3 font-serif text-lg capitalize" style={{ animationDelay: `${gi * 60}ms` }}>
+                <h2 className="anim-fade-up -ml-[34px] mb-4 flex items-center gap-3 font-serif text-lg first-letter:uppercase" style={{ animationDelay: `${gi * 60}ms` }}>
                   <span className="h-3.5 w-3.5 rounded-full border-2 border-accent bg-paper" aria-hidden="true" />
                   {mes}
                 </h2>

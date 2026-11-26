@@ -12,16 +12,27 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #16130f;
-    --card: #1f1b16;
-    --ink: #ece4d6;
-    --muted: #a39886;
-    --line: #332d25;
-    --accent: #d9a066;
-    --accent-soft: #2c2318;
+  :root:not([data-theme="light"]) {
+    --paper: #110e0b;
+    --card: #1a1611;
+    --ink: #f0e8da;
+    --muted: #a89c8a;
+    --line: #3a2f22;
+    --accent: #e0a85f;
+    --accent-soft: #2e2214;
     --sage: #9bb08a;
   }
+}
+
+:root[data-theme="dark"] {
+    --paper: #110e0b;
+    --card: #1a1611;
+    --ink: #f0e8da;
+    --muted: #a89c8a;
+    --line: #3a2f22;
+    --accent: #e0a85f;
+    --accent-soft: #2e2214;
+    --sage: #9bb08a;
 }
 
 @theme inline {
@@ -178,3 +189,31 @@ input {
 .stagger > *:nth-child(7) { animation-delay: 300ms; }
 .stagger > *:nth-child(n+8) { animation-delay: 350ms; }
 a, button { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- Inspirações: quadradinhos de ícone, brilho dourado ---------- */
+.tile {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+}
+.tile-on {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #000));
+  color: var(--paper);
+  border-color: transparent;
+  box-shadow: 0 0 20px -4px var(--accent);
+}
+.cartao-ouro {
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 9%, var(--card)), var(--card));
+  box-shadow: 0 18px 40px -26px var(--accent);
+}
+.item-ativo {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, var(--card)), var(--card));
+  box-shadow: 0 10px 30px -18px var(--accent);
+}

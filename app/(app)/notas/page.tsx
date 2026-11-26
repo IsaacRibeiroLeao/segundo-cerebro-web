@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { supabase } from "@/lib/supabase";
 import { buscar, formatarData, parseLista, processarNota } from "@/lib/cerebro";
 import { baixar, exportarMarkdown, useDados } from "@/lib/dados";
@@ -11,9 +11,18 @@ import { ListaConexoes } from "@/components/Conexoes";
 import { Icon } from "@/components/Icon";
 import { Passagem } from "@/components/Passagem";
 import { Pensando } from "@/components/Pensando";
+import { Tile } from "@/components/Tile";
 import { TagsSugeridas } from "@/components/TagsSugeridas";
 import { TextoComCitacoes } from "@/components/Citacoes";
 import { limparCitacoes } from "@/lib/texto";
+
+function useLargo() {
+  return useSyncExternalStore(
+    (cb) => { const m = window.matchMedia("(min-width: 1024px)"); m.addEventListener("change", cb); return () => m.removeEventListener("change", cb); },
+    () => window.matchMedia("(min-width: 1024px)").matches,
+    () => false,
+  );
+}
 
 const ORIGEM: Record<Reflexao["origem"], string> = { auto: "Ao guardar", edicao: "Após editar", manual: "Pedida por você" };
 
@@ -240,6 +249,11 @@ export default function Notas() {
   const [aberta, setAberta] = useState<string | null>(null);
   const [destaque, setDestaque] = useState<string | null>(null);
   const [menuExport, setMenuExport] = useState(false);
+  const largo = useLargo();
+  const campoBusca = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("busca")) campoBusca.current?.focus();
+  }, []);
   const rolou = useRef(false);
   const notasRef = useRef<Nota[] | null>(null);
   useEffect(() => { notasRef.current = notas; }, [notas]);
@@ -328,7 +342,7 @@ export default function Notas() {
       </div>
 
       <div className="relative mt-4">
-        <input aria-label="Buscar nas notas" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por palavra ou por ideia…"
+        <input ref={campoBusca} aria-label="Buscar nas notas" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por palavra ou por ideia…"
           className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none transition focus:border-accent" />
         {buscando && <span className="absolute right-4 top-3.5 text-xs text-muted">buscando…</span>}
       </div>
@@ -349,13 +363,44 @@ export default function Notas() {
         <p className="anim-fade-in mt-8 text-center text-muted">{notas.length === 0 ? "Você ainda não escreveu nenhuma nota." : "Nada encontrado."}</p>
       )}
 
-      <ul className="mt-5 space-y-3">
-        {lista.filter((n) => !ocultas.has(n.id)).map((n, i) => (
-          <Cartao key={n.id} nota={n} notas={notas ?? []} conexoes={conexoes} indice={i}
-            aberta={aberta === n.id} destaque={destaque === n.id}
-            aoAlternar={() => setAberta(aberta === n.id ? null : n.id)} aoApagar={() => agendarExclusao(n.id)} recarregar={recarregar} />
-        ))}
-      </ul>
+      {(() => {
+        const visiveis = lista.filter((n) => !ocultas.has(n.id));
+        if (!largo) return (
+          <ul className="mt-5 space-y-3">
+            {visiveis.map((n, i) => (
+              <Cartao key={n.id} nota={n} notas={notas ?? []} conexoes={conexoes} indice={i}
+                aberta={aberta === n.id} destaque={destaque === n.id}
+                aoAlternar={() => setAberta(aberta === n.id ? null : n.id)} aoApagar={() => agendarExclusao(n.id)} recarregar={recarregar} />
+            ))}
+          </ul>
+        );
+        const sel = visiveis.find((n) => n.id === aberta) ?? visiveis[0];
+        return (
+          <div className="mt-5 grid grid-cols-[20rem_1fr] items-start gap-6">
+            <ul className="max-h-[calc(100vh-14rem)] space-y-2 overflow-y-auto pr-1">
+              {visiveis.map((n) => (
+                <li key={n.id}>
+                  <button onClick={() => setAberta(n.id)} aria-current={sel?.id === n.id}
+                    className={`press flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition ${sel?.id === n.id ? "item-ativo border-transparent" : "border-line bg-card hover:border-accent/50"}`}>
+                    <Tile nome="notas" tamanho={34} ativo={sel?.id === n.id} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs text-muted">{formatarData(n.created_at)}</span>
+                      <span className="line-clamp-2 block font-serif text-sm">{n.conteudo}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {sel && (
+              <ul className="sticky top-6">
+                <Cartao key={sel.id} nota={sel} notas={notas ?? []} conexoes={conexoes} indice={0}
+                  aberta destaque={destaque === sel.id} aoAlternar={() => undefined}
+                  aoApagar={() => agendarExclusao(sel.id)} recarregar={recarregar} />
+              </ul>
+            )}
+          </div>
+        );
+      })()}
       {erroApagar && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erroApagar}</p>}
       {desfazer && (
         <div role="status" className="anim-fade-up glass fixed bottom-24 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4 rounded-2xl px-4 py-3 text-sm shadow-lg md:bottom-8">
