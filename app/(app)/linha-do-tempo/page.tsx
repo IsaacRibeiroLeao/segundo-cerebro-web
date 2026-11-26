@@ -7,6 +7,7 @@ import { evolucao, formatarData, gerarRevisao } from "@/lib/cerebro";
 import { useDados } from "@/lib/dados";
 import { NOMES_LIVROS, passagemPrincipal, type Fonte, type Revisao } from "@/lib/types";
 import { TextoComCitacoes } from "@/components/Citacoes";
+import { ModoNotas } from "@/components/ModoNotas";
 import { Pensando } from "@/components/Pensando";
 import { limparCitacoes } from "@/lib/texto";
 
@@ -93,7 +94,8 @@ export default function LinhaDoTempo() {
 
   return (
     <div>
-      <h1 className="font-serif text-3xl">Linha do tempo</h1>
+      <h1 className="font-serif text-3xl">Notas</h1>
+      <ModoNotas atual="tempo" />
       <p className="mt-1 text-muted">Veja como cada tema foi crescendo ao longo dos meses.</p>
 
       <div className="mt-5 inline-flex rounded-xl border border-line bg-card p-1 text-sm">

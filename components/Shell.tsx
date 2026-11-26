@@ -15,14 +15,15 @@ const itens = [
   { href: "/biblia", nome: "Bíblia", icone: "biblia" },
   { href: "/conversar", nome: "Conversar", icone: "conversar" },
   { href: "/mapa", nome: "Mapa", icone: "mapa" },
-  { href: "/linha-do-tempo", nome: "Tempo", icone: "tempo" },
 ] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { perfil } = usePerfil();
   const nomePerfil = perfil?.nome;
-  const ativo = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const ativo = (href: string) =>
+    href === "/" ? pathname === "/" : href === "/notas" ? pathname.startsWith("/notas") || pathname.startsWith("/linha-do-tempo") : pathname.startsWith(href);
+  const abas = [itens[0], itens[1], itens[2], itens[3], itens[4]];
 
   return (
     <div className="min-h-screen md:flex">
@@ -70,19 +71,28 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div key={pathname} className={`anim-fade-in mx-auto w-full px-5 py-8 md:py-12 ${pathname.startsWith("/mapa") ? "max-w-5xl" : pathname.startsWith("/notas") ? "max-w-3xl xl:max-w-6xl" : "max-w-3xl"}`}>{children}</div>
       </main>
 
-      <nav className="glass md:hidden fixed bottom-3 inset-x-3 z-10 flex rounded-3xl px-1 py-1.5">
-        {itens.map((i) => (
-          <Link
-            key={i.href}
-            href={i.href}
-            className={`press flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] transition-colors ${
-              ativo(i.href) ? "font-medium text-accent" : "text-muted"
-            }`}
-          >
-            <Tile nome={i.icone} tamanho={34} ativo={ativo(i.href)} className={ativo(i.href) ? "-translate-y-0.5 scale-105" : "border-transparent bg-transparent"} />
-            {i.nome}
-          </Link>
-        ))}
+      <nav className="glass md:hidden fixed bottom-3 inset-x-3 z-10 flex items-end rounded-3xl px-1 py-1.5">
+        {abas.map((i) =>
+          i.href === "/biblia" ? (
+            <Link key={i.href} href={i.href} aria-label="Bíblia" className="press relative flex flex-1 flex-col items-center gap-0.5 text-[11px]">
+              <span
+                className={`-mt-9 grid h-[62px] w-[62px] place-items-center rounded-full bg-white text-accent shadow-[0_6px_20px_rgba(0,0,0,0.35)] ring-4 transition ${ativo(i.href) ? "ring-accent" : "ring-paper"}`}
+              >
+                <Icon nome="biblia" className="h-8 w-8" />
+              </span>
+              <span className={ativo(i.href) ? "font-medium text-accent" : "text-muted"}>Bíblia</span>
+            </Link>
+          ) : (
+            <Link
+              key={i.href}
+              href={i.href}
+              className={`press flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] transition-colors ${ativo(i.href) ? "font-medium text-accent" : "text-muted"}`}
+            >
+              <Tile nome={i.icone} tamanho={34} ativo={ativo(i.href)} className={ativo(i.href) ? "-translate-y-0.5 scale-105" : "border-transparent bg-transparent"} />
+              {i.nome}
+            </Link>
+          ),
+        )}
       </nav>
     </div>
   );

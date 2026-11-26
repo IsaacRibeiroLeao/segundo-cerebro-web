@@ -9,6 +9,7 @@ import { useLeitura } from "@/lib/leitura";
 import { CAPITULOS, NOMES_LIVROS, TOTAL_CAPITULOS, proximoNaoLido, vizinho } from "@/lib/livros";
 import type { Versiculos } from "@/lib/types";
 import { Pensando } from "@/components/Pensando";
+import { CORES_GRIFO, useGrifos, type CorGrifo } from "@/lib/grifos";
 
 const PRIMEIRO_NT = 39;
 const POS = "sc_biblia_pos_v1";
@@ -31,6 +32,8 @@ export default function Biblia() {
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const { notas } = useDados();
   const { lidos, alternar, erro: erroLeitura } = useLeitura();
+  const { grifos, grifar, remover, erro: erroGrifo } = useGrifos(pos.livro, pos.capitulo);
+  const [cor, setCor] = useState<CorGrifo>("ouro");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -106,9 +109,16 @@ export default function Biblia() {
   }
 
   const select = "rounded-xl border border-line bg-card px-3 py-2 outline-none transition focus:border-accent";
+  const sel = [...selecionados];
+  const todosGrifados = sel.length > 0 && sel.every((n) => grifos.has(n));
+
+  async function aplicarGrifo() {
+    if (todosGrifados) await remover(sel); else await grifar(sel, cor);
+    setSelecionados(new Set());
+  }
 
   return (
-    <div>
+    <div className="pb-28">
       <h1 className="font-serif text-3xl">Bíblia</h1>
 
       <div role="tablist" className="mt-4 inline-flex rounded-2xl border border-line bg-card p-1 text-sm">
@@ -126,7 +136,7 @@ export default function Biblia() {
           {NOMES_LIVROS.map((n, i) => (i >= PRIMEIRO_NT) === novo && <option key={n} value={i}>{n}</option>)}
         </select>
         <select aria-label="Capítulo" value={pos.capitulo} onChange={(e) => setPos({ ...pos, capitulo: Number(e.target.value) })} className={select}>
-          {Array.from({ length: CAPITULOS[pos.livro] }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+          {Array.from({ length: CAPITULOS[pos.livro] }, (_, i) => <option key={i + 1} value={i + 1}>Capítulo {i + 1}</option>)}
         </select>
         <div className="ml-auto flex gap-2">
           <button disabled={!anterior} onClick={() => anterior && setPos(anterior)} aria-label="Capítulo anterior" className="press rounded-xl border border-line px-3 py-2 disabled:opacity-30">←</button>
@@ -134,46 +144,62 @@ export default function Biblia() {
         </div>
       </div>
 
-      <article className="mt-6">
-        <h2 className="font-serif text-2xl">{NOMES_LIVROS[pos.livro]} {pos.capitulo}</h2>
-        {!texto && !erro && <p className="mt-4 text-muted"><Pensando texto="Carregando" /></p>}
-        {erro && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
+      <article className="mx-auto mt-8 max-w-prose">
+        <p className="text-center text-xs uppercase tracking-[0.2em] text-muted">{NOMES_LIVROS[pos.livro]}</p>
+        <h2 className="mt-1 text-center font-serif text-5xl text-accent">{pos.capitulo}</h2>
+        {!texto && !erro && <p className="mt-6 text-center text-muted"><Pensando texto="Carregando" /></p>}
+        {erro && <p className="mt-6 rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
         {texto && (
-          <div key={chave} className="anim-fade-in mt-4 space-y-1 font-serif text-lg leading-relaxed">
-            {texto.versiculos.map((v) => (
-              <p key={v.n}>
-                <button
-                  onClick={() => alternarVerso(v.n)}
-                  aria-pressed={selecionados.has(v.n)}
-                  className={`rounded px-1 text-left transition-colors ${selecionados.has(v.n) ? "bg-accent-soft" : "hover:bg-accent-soft/50"}`}
-                >
-                  <sup className="mr-1 text-xs text-accent">{v.n}</sup>{v.texto}
-                </button>
-              </p>
-            ))}
-          </div>
+          <p key={chave} className="anim-fade-in mt-8 font-serif text-[1.22rem] leading-[2.1rem]">
+            {texto.versiculos.map((v) => {
+              const g = grifos.get(v.n);
+              const on = selecionados.has(v.n);
+              return (
+                <span key={v.n}>
+                  <button
+                    onClick={() => alternarVerso(v.n)}
+                    aria-pressed={on}
+                    style={g && !on ? { backgroundColor: CORES_GRIFO[g] } : undefined}
+                    className={`rounded px-0.5 text-left transition-colors [box-decoration-break:clone] ${on ? "bg-accent/25 underline decoration-accent decoration-2 underline-offset-4" : g ? "" : "hover:bg-accent-soft/60"}`}
+                  >
+                    <sup className="mr-1 text-[0.65rem] font-sans font-semibold text-accent">{v.n}</sup>{v.texto}
+                  </button>{" "}
+                </span>
+              );
+            })}
+          </p>
         )}
+        {texto && !selecionados.size && <p className="mt-6 text-center text-xs text-muted">Toque num versículo para grifar, anotar ou compartilhar.</p>}
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <button onClick={() => alternar(pos.livro, pos.capitulo)} disabled={!lidos}
+            className={`press rounded-xl px-5 py-2.5 text-sm font-medium ${lido ? "border border-accent text-accent" : "btn-accent"}`}>
+            {lido ? "✓ Capítulo lido" : "Marcar como lido"}
+          </button>
+          {seguinte && <button onClick={() => setPos(seguinte)} className="press rounded-xl border border-line px-5 py-2.5 text-sm hover:bg-accent-soft">Próximo capítulo →</button>}
+        </div>
       </article>
 
-      <div className="sticky bottom-[5.5rem] z-[5] mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 shadow-lg md:bottom-4">
-        <button onClick={() => alternar(pos.livro, pos.capitulo)} disabled={!lidos}
-          className={`press rounded-xl px-4 py-2 text-sm font-medium ${lido ? "border border-accent text-accent" : "btn-accent"}`}>
-          {lido ? "✓ Lido" : "Marcar como lido"}
-        </button>
-        <button onClick={anotar} disabled={!texto} className="press rounded-xl border border-line px-4 py-2 text-sm hover:bg-accent-soft disabled:opacity-40">
-          Anotar sobre {selecionados.size ? rotuloSelecao() : "este capítulo"}
-        </button>
-        <button onClick={compartilhar} disabled={!texto} className="press rounded-xl border border-line px-4 py-2 text-sm hover:bg-accent-soft disabled:opacity-40">
-          {copiado ? "Copiado ✓" : "Compartilhar"}
-        </button>
-        {lido && seguinte && (
-          <button onClick={() => setPos(seguinte)} className="press ml-auto text-sm text-accent">Próximo →</button>
-        )}
-      </div>
-      {erroLeitura && <p className="mt-2 text-xs text-muted">Não consegui salvar a leitura: {erroLeitura}</p>}
+      {selecionados.size > 0 && (
+        <div role="toolbar" aria-label="Ações do versículo" className="anim-fade-up fixed inset-x-3 bottom-[6.25rem] z-20 mx-auto flex max-w-lg flex-wrap items-center justify-center gap-2 rounded-2xl border border-line bg-card px-3 py-3 shadow-xl md:bottom-6">
+          <span className="w-full text-center text-xs text-muted">{rotuloSelecao()}</span>
+          <div className="flex items-center gap-1.5">
+            {(Object.keys(CORES_GRIFO) as CorGrifo[]).map((k) => (
+              <button key={k} onClick={() => setCor(k)} aria-label={`Cor ${k}`} aria-pressed={cor === k}
+                style={{ backgroundColor: CORES_GRIFO[k].replace(/0\.\d+\)/, "0.9)") }}
+                className={`press h-7 w-7 rounded-full ring-offset-2 ring-offset-card ${cor === k ? "ring-2 ring-accent" : ""}`} />
+            ))}
+          </div>
+          <button onClick={aplicarGrifo} className="press btn-accent rounded-xl px-3.5 py-2 text-sm font-medium">{todosGrifados ? "Remover grifo" : "Grifar"}</button>
+          <button onClick={anotar} className="press rounded-xl border border-line px-3.5 py-2 text-sm hover:bg-accent-soft">Anotar</button>
+          <button onClick={compartilhar} className="press rounded-xl border border-line px-3.5 py-2 text-sm hover:bg-accent-soft">{copiado ? "Copiado ✓" : "Compartilhar"}</button>
+          <button onClick={() => setSelecionados(new Set())} aria-label="Limpar seleção" className="press px-2 text-muted hover:text-ink">✕</button>
+        </div>
+      )}
+      {(erroLeitura || erroGrifo) && <p className="mt-2 text-center text-xs text-muted">Não consegui salvar: {erroGrifo ?? erroLeitura}</p>}
 
       {doCapitulo.length > 0 && (
-        <section className="mt-8">
+        <section className="mx-auto mt-10 max-w-prose">
           <h3 className="text-xs font-medium uppercase tracking-wide text-muted">Suas notas neste capítulo</h3>
           <ul className="mt-2 space-y-2">
             {doCapitulo.map((n) => (
@@ -187,7 +213,7 @@ export default function Biblia() {
         </section>
       )}
 
-      <section className="mt-10 rounded-2xl border border-line bg-card p-4">
+      <section className="mx-auto mt-10 max-w-prose rounded-2xl border border-line bg-card p-4">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-serif text-xl">Seu progresso</h3>
           <span className="text-sm text-muted">{totalLidos} de {TOTAL_CAPITULOS} capítulos</span>
@@ -201,15 +227,22 @@ export default function Biblia() {
           </button>
         )}
         <details className="mt-4 text-sm">
-          <summary className="cursor-pointer text-muted">Por livro</summary>
-          <ul className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+          <summary className="cursor-pointer text-muted">Ir para um livro</summary>
+          <ul className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
             {NOMES_LIVROS.map((n, i) => (
               <li key={n}>
                 <button onClick={() => setPos({ livro: i, capitulo: 1 })} className="press block w-full text-left">
-                  <span className="flex justify-between"><span>{n}</span><span className="text-muted">{porLivro[i]}/{CAPITULOS[i]}</span></span>
-                  <span className="mt-1 block h-1 overflow-hidden rounded-full bg-accent-soft">
-                    <span className="block h-full rounded-full bg-accent" style={{ width: `${(porLivro[i] / CAPITULOS[i]) * 100}%` }} />
+                  <span className="flex justify-between gap-2">
+                    <span>{n}</span>
+                    <span className="text-muted">
+                      {porLivro[i] >= CAPITULOS[i] ? <span className="text-accent">✓ completo</span> : porLivro[i] > 0 ? `${porLivro[i]} lidos` : ""}
+                    </span>
                   </span>
+                  {porLivro[i] > 0 && (
+                    <span className="mt-1 block h-1 overflow-hidden rounded-full bg-accent-soft">
+                      <span className="block h-full rounded-full bg-accent" style={{ width: `${(porLivro[i] / CAPITULOS[i]) * 100}%` }} />
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

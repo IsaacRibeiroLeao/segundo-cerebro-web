@@ -11,6 +11,7 @@ import { ListaConexoes } from "@/components/Conexoes";
 import { Icon } from "@/components/Icon";
 import { Passagem } from "@/components/Passagem";
 import { Pensando } from "@/components/Pensando";
+import { ModoNotas } from "@/components/ModoNotas";
 import { Tile } from "@/components/Tile";
 import { TagsSugeridas } from "@/components/TagsSugeridas";
 import { TextoComCitacoes } from "@/components/Citacoes";
@@ -326,7 +327,10 @@ export default function Notas() {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="font-serif text-3xl">Notas</h1>
+        <div>
+          <h1 className="font-serif text-3xl">Notas</h1>
+          <ModoNotas atual="lista" />
+        </div>
         <div className="relative">
           <button onClick={() => setMenuExport((v) => !v)} disabled={!notas?.length} className="press inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink disabled:opacity-40">
             <Icon nome="baixar" className="h-4 w-4" /> Exportar
