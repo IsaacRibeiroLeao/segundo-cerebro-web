@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { Icon } from "./Icon";
 import { Avatar } from "./Avatar";

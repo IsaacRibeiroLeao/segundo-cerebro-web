@@ -10,6 +10,8 @@ import { Icon } from "@/components/Icon";
 import { Passagem } from "@/components/Passagem";
 import { Pensando } from "@/components/Pensando";
 import { TagsSugeridas } from "@/components/TagsSugeridas";
+import { TextoComCitacoes } from "@/components/Citacoes";
+import { limparCitacoes } from "@/lib/texto";
 
 const ORIGEM: Record<Reflexao["origem"], string> = { auto: "Ao guardar", edicao: "Após editar", manual: "Pedida por você" };
 
@@ -20,9 +22,9 @@ function Cartao({
   aoAlternar: () => void; recarregar: () => Promise<void>; indice: number;
 }) {
   const [editando, setEditando] = useState(false);
-  const [texto, setTexto] = useState(nota.conteudo);
-  const [refs, setRefs] = useState(nota.referencias.join(", "));
-  const [tags, setTags] = useState(nota.tags.join(", "));
+  const [texto, setTexto] = useState("");
+  const [refs, setRefs] = useState("");
+  const [tags, setTags] = useState("");
   const [ocupado, setOcupado] = useState<null | "salvando" | "refletindo">(null);
   const [erro, setErro] = useState<string | null>(null);
   const [versoes, setVersoes] = useState<Reflexao[] | null>(null);
@@ -32,9 +34,17 @@ function Cartao({
   const refsIa = nota.sc_nota_refs.filter((r) => r.origem === "ia");
   const refsUsuario = nota.sc_nota_refs.filter((r) => r.origem === "usuario");
 
+  // Os campos são preenchidos ao abrir a edição, com o que a nota tem agora (tags confirmadas inclusive).
+  function abrirEdicao() {
+    setTexto(nota.conteudo);
+    setRefs(nota.referencias.join(", "));
+    setTags(nota.tags.join(", "));
+    setEditando(true);
+  }
+
   async function carregarVersoes() {
     const { data } = await supabase
-      .from("sc_reflexoes").select("id, texto, origem, created_at").eq("nota_id", nota.id).order("created_at", { ascending: false });
+      .from("sc_reflexoes").select("id, texto, origem, created_at, fontes").eq("nota_id", nota.id).order("created_at", { ascending: false });
     setVersoes((data ?? []) as Reflexao[]);
   }
 
@@ -105,12 +115,12 @@ function Cartao({
         <div className="anim-expand space-y-5 border-t border-line p-4">
           {editando ? (
             <div className="space-y-2">
-              <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={6}
+              <textarea aria-label="Texto da nota" value={texto} onChange={(e) => setTexto(e.target.value)} rows={6}
                 className="w-full resize-y rounded-xl border border-line bg-paper p-3 font-serif leading-relaxed outline-none focus:border-accent" />
               <div className="grid gap-2 sm:grid-cols-2">
-                <input value={refs} onChange={(e) => setRefs(e.target.value)} placeholder="Passagem (opcional)"
+                <input aria-label="Passagem" value={refs} onChange={(e) => setRefs(e.target.value)} placeholder="Passagem (opcional)"
                   className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags"
+                <input aria-label="Tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags"
                   className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent" />
               </div>
               <div className="flex gap-2">
@@ -137,7 +147,7 @@ function Cartao({
                 {ocupado === "refletindo" ? (
                   <p className="mt-2"><Pensando texto="Pensando de novo sobre esta nota" /></p>
                 ) : nota.reflexao ? (
-                  <p className="mt-2 whitespace-pre-wrap leading-relaxed">{nota.reflexao.replace(/\s?\[\d+\]/g, "")}</p>
+                  nota.reflexao_fontes?.length ? <div className="mt-2"><TextoComCitacoes texto={nota.reflexao} fontes={nota.reflexao_fontes} /></div> : <p className="mt-2 whitespace-pre-wrap leading-relaxed">{limparCitacoes(nota.reflexao)}</p>
                 ) : (
                   <p className="mt-2 text-sm text-muted">Ainda sem reflexão.</p>
                 )}
@@ -155,7 +165,7 @@ function Cartao({
                     {versoes.map((v, i) => (
                       <li key={v.id} className="rounded-xl border border-line bg-paper p-3 text-sm">
                         <p className="text-xs text-muted">{i === 0 ? "Atual · " : ""}{ORIGEM[v.origem]} · {formatarData(v.created_at)}</p>
-                        <p className="mt-1 whitespace-pre-wrap">{v.texto.replace(/\s?\[\d+\]/g, "")}</p>
+                        <div className="mt-1">{v.fontes?.length ? <TextoComCitacoes texto={v.texto} fontes={v.fontes} /> : <p className="whitespace-pre-wrap">{limparCitacoes(v.texto)}</p>}</div>
                       </li>
                     ))}
                   </ul>
@@ -168,7 +178,7 @@ function Cartao({
               </div>
 
               <div className="flex items-center gap-4 border-t border-line pt-3 text-sm">
-                <button onClick={() => setEditando(true)} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="editar" className="h-4 w-4" /> Editar</button>
+                <button onClick={abrirEdicao} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="editar" className="h-4 w-4" /> Editar</button>
                 {confirmaApagar ? (
                   <span className="anim-fade-in inline-flex items-center gap-3">
                     <button onClick={apagar} className="press font-medium text-red-700 dark:text-red-300">Apagar de vez</button>
@@ -197,6 +207,8 @@ export default function Notas() {
   const [destaque, setDestaque] = useState<string | null>(null);
   const [menuExport, setMenuExport] = useState(false);
   const rolou = useRef(false);
+  const notasRef = useRef<Nota[] | null>(null);
+  useEffect(() => { notasRef.current = notas; }, [notas]);
 
   // Busca híbrida (texto + sentido), com pequeno atraso para não gastar cota a cada tecla.
   useEffect(() => {
@@ -213,12 +225,12 @@ export default function Notas() {
         setAchados({ ids: r.resultados.map((x) => x.id), semantica: r.semantica });
       } catch {
         const min = q.toLowerCase();
-        setAchados({ ids: (notas ?? []).filter((n) => n.conteudo.toLowerCase().includes(min)).map((n) => n.id), semantica: false });
+        setAchados({ ids: (notasRef.current ?? []).filter((n) => n.conteudo.toLowerCase().includes(min)).map((n) => n.id), semantica: false });
       }
       setBuscando(false);
     }, 600);
     return () => clearTimeout(t);
-  }, [busca, notas]);
+  }, [busca]);
 
   // Abre e rola até a nota indicada em #id.
   const irParaHash = useCallback(() => {
@@ -280,7 +292,7 @@ export default function Notas() {
       </div>
 
       <div className="relative mt-4">
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por palavra ou por ideia…"
+        <input aria-label="Buscar nas notas" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por palavra ou por ideia…"
           className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none transition focus:border-accent" />
         {buscando && <span className="absolute right-4 top-3.5 text-xs text-muted">buscando…</span>}
       </div>

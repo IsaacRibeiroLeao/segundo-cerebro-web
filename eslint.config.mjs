@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "supabase/functions/**", // Deno, fora do alcance do lint do Next
   ]),
 ]);
 

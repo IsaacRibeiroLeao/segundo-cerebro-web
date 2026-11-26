@@ -4,9 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { COLUNAS_NOTA, type Conexao, type Nota } from "./types";
 
+// Cache de módulo: navegar entre telas mostra o que já foi baixado na hora e atualiza em segundo plano.
+let cache: { notas: Nota[]; conexoes: Conexao[] } | null = null;
+export function limparCacheDados() { cache = null; }
+
 export function useDados() {
-  const [notas, setNotas] = useState<Nota[] | null>(null);
-  const [conexoes, setConexoes] = useState<Conexao[]>([]);
+  const [notas, setNotas] = useState<Nota[] | null>(cache?.notas ?? null);
+  const [conexoes, setConexoes] = useState<Conexao[]>(cache?.conexoes ?? []);
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
@@ -19,8 +23,9 @@ export function useDados() {
       return;
     }
     setErro(null);
-    setNotas((n.data ?? []) as unknown as Nota[]);
-    setConexoes((c.data ?? []) as Conexao[]);
+    cache = { notas: (n.data ?? []) as unknown as Nota[], conexoes: (c.data ?? []) as Conexao[] };
+    setNotas(cache.notas);
+    setConexoes(cache.conexoes);
   }, []);
 
   useEffect(() => {

@@ -5,15 +5,13 @@ import { supabase } from "@/lib/supabase";
 import { gerarRevisao } from "@/lib/cerebro";
 import type { Fonte, Revisao } from "@/lib/types";
 import { TextoComCitacoes } from "./Citacoes";
+import { limparCitacoes } from "@/lib/texto";
 import { Pensando } from "./Pensando";
 
 const SETE_DIAS = 7 * 86400000;
 
-export function limparCitacoes(t: string) {
-  return t.replace(/\s?\[\d+\]/g, "");
-}
-
 export function RevisaoCard() {
+  const [agora] = useState(() => Date.now());
   const [revisao, setRevisao] = useState<Revisao | null>(null);
   const [fontes, setFontes] = useState<Fonte[]>([]);
   const [gerando, setGerando] = useState(false);
@@ -46,7 +44,7 @@ export function RevisaoCard() {
   }
 
   if (!pronto) return null;
-  const recente = revisao && Date.now() - new Date(revisao.created_at).getTime() < SETE_DIAS;
+  const recente = revisao && agora - new Date(revisao.created_at).getTime() < SETE_DIAS;
 
   return (
     <section className="anim-fade-up mt-8 rounded-2xl border border-line bg-card p-5" style={{ animationDelay: "120ms" }}>

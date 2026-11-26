@@ -8,6 +8,7 @@ export type Nota = {
   tags: string[];
   tags_sugeridas: string[];
   reflexao: string | null;
+  reflexao_fontes: Fonte[] | null;
   passagem_ia: PassagemIa | null;
   processada_em: string | null;
   created_at: string;
@@ -26,7 +27,7 @@ export type Conexao = {
   motivo: string;
 };
 
-export type Reflexao = { id: string; texto: string; origem: "auto" | "edicao" | "manual"; created_at: string };
+export type Reflexao = { id: string; texto: string; origem: "auto" | "edicao" | "manual"; created_at: string; fontes: Fonte[] | null };
 export type Revisao = { id: string; inicio: string; fim: string; texto: string; created_at: string };
 
 export type Fonte = {
@@ -49,7 +50,7 @@ export type Versiculos = {
 };
 
 export const COLUNAS_NOTA =
-  "id, conteudo, referencias, tags, tags_sugeridas, reflexao, passagem_ia, processada_em, created_at, sc_nota_refs(rotulo, origem, livro, capitulo)";
+  "id, conteudo, referencias, tags, tags_sugeridas, reflexao, reflexao_fontes, passagem_ia, processada_em, created_at, sc_nota_refs(rotulo, origem, livro, capitulo)";
 
 export const GRUPO: Record<TipoConexao, GrupoConexao> = {
   semantica: "sentido",

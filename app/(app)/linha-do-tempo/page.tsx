@@ -8,7 +8,7 @@ import { useDados } from "@/lib/dados";
 import { NOMES_LIVROS, passagemPrincipal, type Fonte, type Revisao } from "@/lib/types";
 import { TextoComCitacoes } from "@/components/Citacoes";
 import { Pensando } from "@/components/Pensando";
-import { limparCitacoes } from "@/components/RevisaoCard";
+import { limparCitacoes } from "@/lib/texto";
 
 type Filtro = { tipo: "tag" | "livro"; valor: string | number } | null;
 

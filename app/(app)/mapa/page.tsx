@@ -62,9 +62,10 @@ export default function Mapa() {
     return [...f.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([t]) => t);
   }, [notas]);
 
+  const [agora] = useState(() => Date.now());
   const { nos, arestas, temas } = useMemo(() => {
     const dias = PERIODOS.find((p) => p.id === periodo)?.dias ?? 0;
-    const corte = dias ? Date.now() - dias * 86400000 : 0;
+    const corte = dias ? agora - dias * 86400000 : 0;
     let base = (notas ?? []).filter((n) => new Date(n.created_at).getTime() >= corte);
     if (tag) base = base.filter((n) => n.tags.includes(tag));
     const ids = new Set(base.map((n) => n.id));
@@ -101,7 +102,7 @@ export default function Mapa() {
     const t = new Map<string, string>();
     for (const n of nosCalc) if (n.tema && !t.has(n.tema)) t.set(n.tema, n.cor);
     return { nos: nosCalc, arestas: arestasVisiveis, temas: [...t.entries()].slice(0, 8) };
-  }, [notas, conexoes, periodo, tag, grupos, soConectadas]);
+  }, [agora, notas, conexoes, periodo, tag, grupos, soConectadas]);
 
   const porId = useMemo(() => new Map(nos.map((n) => [n.nota.id, n])), [nos]);
   const foco = hover ?? (sel?.tipo === "no" ? sel.id : null);

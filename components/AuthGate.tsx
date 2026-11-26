@@ -5,17 +5,23 @@ import type { Session } from "@supabase/supabase-js";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { Icon } from "./Icon";
+import { limparDadosLocais } from "@/lib/sessao";
 
 export function AuthGate({ children }: { children: (session: Session) => React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [recuperando, setRecuperando] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setCarregando(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
+      if (evento === "SIGNED_OUT") limparDadosLocais();
+      if (evento === "PASSWORD_RECOVERY") setRecuperando(true);
+      setSession(s);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -26,6 +32,7 @@ export function AuthGate({ children }: { children: (session: Session) => React.R
       </div>
     );
   }
+  if (recuperando && session) return <NovaSenha aoTerminar={() => setRecuperando(false)} />;
   if (!session) return <Login />;
   return <>{children(session)}</>;
 }
@@ -53,6 +60,35 @@ function FundoNos() {
   );
 }
 
+const CADASTRO_ABERTO = process.env.NEXT_PUBLIC_CADASTRO === "1";
+
+function NovaSenha({ aoTerminar }: { aoTerminar: () => void }) {
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    setEnviando(true);
+    const { error } = await supabase.auth.updateUser({ password: senha });
+    setEnviando(false);
+    if (error) setErro(error.message);
+    else aoTerminar();
+  }
+  return (
+    <main className="grid min-h-screen place-items-center px-5">
+      <form onSubmit={enviar} className="glass anim-fade-up w-full max-w-sm rounded-3xl p-7">
+        <h1 className="font-serif text-2xl">Nova senha</h1>
+        <p className="mt-1 text-sm text-muted">Escolha a senha que você vai usar daqui para frente.</p>
+        <div className="campo mt-5 rounded-2xl border border-line bg-card px-4 py-3">
+          <input type="password" required minLength={6} aria-label="Nova senha" placeholder="Nova senha" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full bg-transparent outline-none" />
+        </div>
+        {erro && <p role="alert" className="mt-3 text-sm text-red-600">{erro}</p>}
+        <button disabled={enviando} className="btn-accent press mt-5 w-full rounded-2xl px-4 py-3 font-medium text-paper disabled:opacity-60">{enviando ? "Salvando…" : "Salvar senha"}</button>
+      </form>
+    </main>
+  );
+}
+
 function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -62,6 +98,15 @@ function Login() {
   const [enviando, setEnviando] = useState(false);
   const [ver, setVer] = useState(false);
   const [tremer, setTremer] = useState(0);
+
+  async function esqueci() {
+    setErro(null);
+    setAviso(null);
+    if (!email) { setErro("Digite seu email acima e toque de novo."); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    if (error) setErro(error.message);
+    else setAviso("Se esse email tiver conta, enviamos um link para criar uma nova senha.");
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -99,15 +144,20 @@ function Login() {
           <button type="button" onClick={() => setVer(!ver)} className="text-xs text-muted hover:text-ink press" aria-label={ver ? "Ocultar senha" : "Mostrar senha"}>{ver ? "ocultar" : "ver"}</button>
         </label>
 
-        {erro && <p role="alert" className="mt-3 text-sm text-red-600 anim-fade-in">{erro}</p>}
+        {erro && <p role="alert" className="mt-3 rounded-xl bg-accent-soft p-3 text-sm text-ink anim-fade-in">{erro}</p>}
         {aviso && <p className="mt-3 text-sm text-sage anim-fade-in">{aviso}</p>}
 
         <button disabled={enviando} className="btn-accent press mt-6 w-full rounded-2xl px-4 py-3.5 font-medium text-paper disabled:opacity-60 anim-fade-up" style={{ animationDelay: "0.36s" }}>
           {enviando ? "Aguarde…" : criando ? "Criar conta" : "Entrar"}
         </button>
-        <button type="button" onClick={() => { setCriando(!criando); setErro(null); }} className="mt-4 w-full text-sm text-muted underline-offset-4 hover:underline">
-          {criando ? "Já tenho conta" : "Primeiro acesso? Criar conta"}
-        </button>
+        {!criando && (
+          <button type="button" onClick={esqueci} className="mt-4 w-full text-sm text-muted underline-offset-4 hover:underline">Esqueci minha senha</button>
+        )}
+        {CADASTRO_ABERTO && (
+          <button type="button" onClick={() => { setCriando(!criando); setErro(null); }} className="mt-2 w-full text-sm text-muted underline-offset-4 hover:underline">
+            {criando ? "Já tenho conta" : "Primeiro acesso? Criar conta"}
+          </button>
+        )}
       </form>
     </main>
   );

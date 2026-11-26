@@ -7,7 +7,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("VITE_GEMINI_API_KEY");
+const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
 const GEN_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const EMB_MODEL = Deno.env.get("GEMINI_EMBED_MODEL") ?? "gemini-embedding-001";
 const BIBLIA_URL =
@@ -35,17 +35,29 @@ type Supa = any;
 // ---------- Gemini ----------
 async function gemini(path: string, body: unknown) {
   if (!GEMINI_KEY) throw new HttpError(503, "GEMINI_API_KEY não configurada no servidor.");
-  const res = await fetch(`${API}/${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
-    body: JSON.stringify(body),
-  });
-  if (res.status === 429) throw new HttpError(429, "Limite gratuito do Gemini atingido. Tente de novo em instantes.");
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new HttpError(502, `Erro do Gemini (${res.status}): ${txt.slice(0, 300)}`);
+  // Até 3 tentativas para falhas passageiras (rede, 5xx), com espera crescente e limite de tempo.
+  const esperas = [0, 500, 1500];
+  let ultimo = "";
+  for (let i = 0; i < esperas.length; i++) {
+    if (esperas[i]) await new Promise((r) => setTimeout(r, esperas[i]));
+    try {
+      const res = await fetch(`${API}/${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (res.status === 429) throw new HttpError(429, "Limite gratuito do Gemini atingido. Tente de novo em instantes.");
+      if (res.ok) return await res.json();
+      ultimo = `${res.status}: ${(await res.text()).slice(0, 300)}`;
+      if (res.status < 500) break; // erro do pedido: repetir não ajuda
+    } catch (e) {
+      if (e instanceof HttpError) throw e;
+      ultimo = String(e);
+    }
   }
-  return await res.json();
+  console.error("Falha no Gemini:", path, ultimo); // o detalhe fica só no log do servidor
+  throw new HttpError(502, "A IA está instável agora. Tente de novo em instantes.");
 }
 
 async function embed(text: string, tipo: "doc" | "query"): Promise<number[]> {
@@ -403,7 +415,7 @@ Responda SOMENTE com um JSON com estas chaves:
     .from("sc_notas")
     .update({ reflexao, tags_sugeridas: sugeridas, passagem_ia: passagemIa, processada_em: new Date().toISOString() })
     .eq("id", nota.id);
-  await supabase.from("sc_reflexoes").insert({ nota_id: nota.id, texto: reflexao, origem });
+  // guardada depois que as conexões definem os motivos (ver abaixo)
 
   // Conexões semânticas, sempre com motivo
   const motivosIa = new Map<number, string>();
@@ -425,7 +437,11 @@ Responda SOMENTE com um JSON com estas chaves:
   });
   await trocarConexoes(supabase, nota.id, ["semantica"], semanticas);
 
-  return { reflexao, tagsSugeridas: sugeridas, passagem: passagemIa, fontes: fontes(relacionadas, motivosPorNota) };
+  const fontesRef = fontes(relacionadas, motivosPorNota);
+  await supabase.from("sc_reflexoes").insert({ nota_id: nota.id, texto: reflexao, origem, fontes: fontesRef });
+  await supabase.from("sc_notas").update({ reflexao_fontes: fontesRef }).eq("id", nota.id);
+
+  return { reflexao, tagsSugeridas: sugeridas, passagem: passagemIa, fontes: fontesRef };
 }
 
 async function processarNota(supabase: Supa, notaId: string, origem: "auto" | "edicao" | "manual") {
@@ -440,6 +456,18 @@ async function processarNota(supabase: Supa, notaId: string, origem: "auto" | "e
 
 // ---------- Handler ----------
 const ORIGENS = ["auto", "edicao", "manual"] as const;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function idDaNota(valor: unknown): string {
+  if (typeof valor !== "string" || !UUID.test(valor)) throw new HttpError(400, "nota_id inválido.");
+  return valor;
+}
+function textoDe(valor: unknown, campo: string, max: number): string {
+  const t = typeof valor === "string" ? valor.trim() : "";
+  if (!t) throw new HttpError(400, `${campo} obrigatório.`);
+  if (t.length > max) throw new HttpError(400, `${campo} grande demais (máximo ${max} caracteres).`);
+  return t;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -459,8 +487,7 @@ Deno.serve(async (req) => {
     const acao = body.acao as string;
 
     if (acao === "processar") {
-      const notaId = body.nota_id as string;
-      if (!notaId) throw new HttpError(400, "nota_id obrigatório.");
+      const notaId = idDaNota(body.nota_id);
       const origem = ORIGENS.includes(body.origem) ? body.origem : "auto";
       const r = await processarNota(supabase, notaId, origem);
       return json(r);
@@ -468,14 +495,13 @@ Deno.serve(async (req) => {
 
     if (acao === "reconectar") {
       // Recalcula só as conexões por passagem e tag (sem IA): útil depois de confirmar tags.
-      const nota = await carregarNota(supabase, body.nota_id as string);
+      const nota = await carregarNota(supabase, idDaNota(body.nota_id));
       const total = await conexoesEstruturais(supabase, nota.id, nota.tags ?? []);
       return json({ conexoes: total });
     }
 
     if (acao === "buscar") {
-      const consulta = String(body.consulta ?? "").trim();
-      if (!consulta) throw new HttpError(400, "consulta obrigatória.");
+      const consulta = textoDe(body.consulta, "consulta", 500);
       let vetor: string | null = null;
       try {
         vetor = `[${(await embed(consulta, "query")).join(",")}]`;
@@ -495,15 +521,14 @@ Deno.serve(async (req) => {
     }
 
     if (acao === "conversar") {
-      const mensagem = String(body.mensagem ?? "").trim();
-      if (!mensagem) throw new HttpError(400, "mensagem obrigatória.");
+      const mensagem = textoDe(body.mensagem, "mensagem", 4000);
       const historico = Array.isArray(body.historico) ? body.historico.slice(-10) : [];
 
       let vetor: string | null = null;
       try {
         vetor = `[${(await embed(mensagem, "query")).join(",")}]`;
       } catch (e) {
-        if (!(e instanceof HttpError) || e.status !== 429) throw e;
+        if (!(e instanceof HttpError)) throw e; // sem embedding: segue só com a busca por texto
       }
       const { data: achadas, error } = await supabase.rpc("sc_busca_hibrida", {
         consulta_texto: mensagem,

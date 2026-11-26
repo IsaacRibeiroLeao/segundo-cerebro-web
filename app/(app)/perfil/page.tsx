@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { limparPerfil, reduzirImagem, usePerfil } from "@/lib/perfil";
+import { reduzirImagem, usePerfil } from "@/lib/perfil";
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
 
@@ -72,7 +72,7 @@ export default function PerfilPage() {
         {erro && <p role="alert" className="mt-3 text-sm text-red-600 anim-fade-in">{erro}</p>}
       </div>
 
-      <button onClick={() => { limparPerfil(); supabase.auth.signOut(); }} className="press anim-fade-up mt-6 flex items-center gap-2 text-muted hover:text-ink" style={{ animationDelay: "120ms" }}>
+      <button onClick={() => supabase.auth.signOut()} className="press anim-fade-up mt-6 flex items-center gap-2 text-muted hover:text-ink" style={{ animationDelay: "120ms" }}>
         <Icon nome="sair" /> Sair da conta
       </button>
     </div>

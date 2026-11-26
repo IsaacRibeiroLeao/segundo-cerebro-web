@@ -21,17 +21,41 @@ function saudacao() {
   return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 }
 
+const RASCUNHO = "sc_rascunho_v1";
+
 export default function Hoje() {
   const { notas, recarregar } = useDados();
   const [conteudo, setConteudo] = useState("");
   const [refs, setRefs] = useState("");
   const [tags, setTags] = useState("");
-  const [fase, setFase] = useState<"livre" | "guardando" | "conectando">("livre");
+  const [fase, setFase] = useState<"livre" | "guardando">("livre");
+  const [conectando, setConectando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pendenteId, setPendenteId] = useState<string | null>(null);
   const [resultado, setResultado] = useState<(ResultadoProcesso & { notaId: string }) | null>(null);
   const [analisando, setAnalisando] = useState(false);
   const tentou = useRef(false);
+  const rascunhoPronto = useRef(false);
+
+  // Rascunho: o que está sendo escrito sobrevive a trocar de aba ou recarregar.
+  useEffect(() => {
+    try {
+      const r = JSON.parse(localStorage.getItem(RASCUNHO) ?? "null");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (r) { setConteudo(r.conteudo ?? ""); setRefs(r.refs ?? ""); setTags(r.tags ?? ""); }
+    } catch { /* rascunho ilegível: ignora */ }
+    rascunhoPronto.current = true;
+  }, []);
+  useEffect(() => {
+    if (!rascunhoPronto.current) return;
+    const t = setTimeout(() => {
+      try {
+        if (conteudo || refs || tags) localStorage.setItem(RASCUNHO, JSON.stringify({ conteudo, refs, tags }));
+        else localStorage.removeItem(RASCUNHO);
+      } catch { /* sem armazenamento: tudo bem */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [conteudo, refs, tags]);
 
   const ditado = useDitado((t) => setConteudo((c) => (c ? `${c} ${t}` : t)));
 
@@ -40,7 +64,6 @@ export default function Hoje() {
   useEffect(() => {
     if (!pendentes || tentou.current) return;
     tentou.current = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnalisando(true);
     reprocessarPendentes()
       .catch(() => undefined)
@@ -51,7 +74,8 @@ export default function Hoje() {
   }, [pendentes, recarregar]);
 
   async function conectar(notaId: string) {
-    setFase("conectando");
+    setConectando(true);
+    setResultado(null);
     try {
       const r = await processarNota(notaId);
       setResultado({ ...r, notaId });
@@ -61,7 +85,7 @@ export default function Hoje() {
       setErro(`Nota guardada, mas a análise falhou: ${(e as Error).message}`);
     }
     await recarregar();
-    setFase("livre");
+    setConectando(false);
   }
 
   async function salvar(e: React.FormEvent) {
@@ -83,7 +107,11 @@ export default function Hoje() {
     setConteudo("");
     setRefs("");
     setTags("");
-    await conectar(data.id);
+    try { localStorage.removeItem(RASCUNHO); } catch { /* sem armazenamento: tudo bem */ }
+    await recarregar();
+    // Libera o formulário já: a análise chega em seguida, sem prender a pessoa.
+    setFase("livre");
+    void conectar(data.id);
   }
 
   const notaResultado = resultado ? notas?.find((n) => n.id === resultado.notaId) : undefined;
@@ -112,6 +140,8 @@ export default function Hoje() {
           <textarea
             value={conteudo}
             onChange={(e) => setConteudo(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
+            aria-label="Sua anotação"
             placeholder="Escreva aqui o que o Espírito Santo falou ao seu coração…"
             rows={5}
             className="w-full resize-y bg-transparent pr-10 font-serif text-lg leading-relaxed outline-none placeholder:text-muted/70"
@@ -134,32 +164,34 @@ export default function Hoje() {
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <input
             value={refs}
+            aria-label="Passagem bíblica (opcional)"
             onChange={(e) => setRefs(e.target.value)}
             placeholder="Passagem (opcional): João 15:5, Sl 23"
             className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none transition focus:border-accent"
           />
           <input
             value={tags}
+            aria-label="Tags (opcional)"
             onChange={(e) => setTags(e.target.value)}
             placeholder="Tags (opcional): fé, obediência"
             className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none transition focus:border-accent"
           />
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-xs text-muted">Sem passagem? Eu sugiro uma para dar contexto.</p>
+          <p className="text-xs text-muted">Sem passagem? Eu sugiro uma para dar contexto. <span className="hidden md:inline">Ctrl+Enter guarda.</span></p>
           <button
             disabled={fase !== "livre" || !conteudo.trim()}
             className="press btn-accent rounded-xl px-5 py-2.5 text-sm font-medium text-paper disabled:opacity-50"
           >
-            {fase === "guardando" ? "Guardando…" : fase === "conectando" ? "Conectando…" : "Guardar e conectar"}
+            {fase === "guardando" ? "Guardando…" : "Guardar e conectar"}
           </button>
         </div>
       </form>
 
-      {fase === "conectando" && (
+      {conectando && (
         <p className="anim-fade-in mt-5 text-sm"><Pensando texto="Procurando ligações com o que você já escreveu" /></p>
       )}
-      {analisando && fase === "livre" && (
+      {analisando && !conectando && (
         <p className="anim-fade-in mt-5 text-sm"><Pensando texto="Analisando suas notas antigas" /></p>
       )}
       {erro && (

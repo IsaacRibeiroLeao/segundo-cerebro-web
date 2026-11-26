@@ -61,7 +61,7 @@ export const reprocessarPendentes = () =>
 export function parseLista(texto: string, removerHash = false): string[] {
   return texto
     .split(/[,;\n]/)
-    .map((s) => (removerHash ? s.replace(/^#/, "") : s).trim())
+    .map((s) => (removerHash ? s.trim().replace(/^#+/, "") : s).trim())
     .filter(Boolean);
 }
 

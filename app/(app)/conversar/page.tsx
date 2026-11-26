@@ -130,15 +130,18 @@ export default function Conversar() {
         }}
         className="sticky bottom-20 mt-6 flex gap-2 md:bottom-4"
       >
-        <input
+        <textarea
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Pergunte algo sobre suas notas…"
-          className="flex-1 rounded-xl border border-line bg-card px-4 py-3 shadow-sm outline-none focus:border-accent"
+          rows={1}
+          aria-label="Pergunta sobre suas notas"
+          onChange={(e) => { setTexto(e.target.value); e.currentTarget.style.height = "auto"; e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`; }}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
+          placeholder="Pergunte algo sobre suas notas… (Shift+Enter quebra a linha)"
+          className="flex-1 resize-none rounded-xl border border-line bg-card px-4 py-3 shadow-sm outline-none focus:border-accent"
         />
         <button
           disabled={enviando || !texto.trim()}
-          className="press btn-accent rounded-xl px-5 font-medium text-paper disabled:opacity-50"
+          className="press btn-accent self-end rounded-xl px-5 py-3 font-medium text-paper disabled:opacity-50"
         >
           Enviar
         </button>
