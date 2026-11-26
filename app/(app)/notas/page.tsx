@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { buscar, formatarData, parseLista, processarNota } from "@/lib/cerebro";
 import { baixar, exportarMarkdown, useDados } from "@/lib/dados";
+import { montarCofre } from "@/lib/obsidian";
+import { criarZip } from "@/lib/zip";
 import type { Conexao, Nota, Reflexao } from "@/lib/types";
 import { ListaConexoes } from "@/components/Conexoes";
 import { Icon } from "@/components/Icon";
@@ -16,10 +18,10 @@ import { limparCitacoes } from "@/lib/texto";
 const ORIGEM: Record<Reflexao["origem"], string> = { auto: "Ao guardar", edicao: "Após editar", manual: "Pedida por você" };
 
 function Cartao({
-  nota, notas, conexoes, aberta, destaque, aoAlternar, recarregar, indice,
+  nota, notas, conexoes, aberta, destaque, aoAlternar, aoApagar, recarregar, indice,
 }: {
   nota: Nota; notas: Nota[]; conexoes: Conexao[]; aberta: boolean; destaque: boolean;
-  aoAlternar: () => void; recarregar: () => Promise<void>; indice: number;
+  aoAlternar: () => void; aoApagar: () => void; recarregar: () => Promise<void>; indice: number;
 }) {
   const [editando, setEditando] = useState(false);
   const [texto, setTexto] = useState("");
@@ -84,12 +86,6 @@ function Cartao({
     }
     await recarregar();
     setOcupado(null);
-  }
-
-  async function apagar() {
-    const { error } = await supabase.from("sc_notas").delete().eq("id", nota.id);
-    if (error) setErro(error.message);
-    else await recarregar();
   }
 
   return (
@@ -181,7 +177,7 @@ function Cartao({
                 <button onClick={abrirEdicao} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="editar" className="h-4 w-4" /> Editar</button>
                 {confirmaApagar ? (
                   <span className="anim-fade-in inline-flex items-center gap-3">
-                    <button onClick={apagar} className="press font-medium text-red-700 dark:text-red-300">Apagar de vez</button>
+                    <button onClick={aoApagar} className="press font-medium text-red-700 dark:text-red-300">Apagar de vez</button>
                     <button onClick={() => setConfirmaApagar(false)} className="press text-muted">Cancelar</button>
                   </span>
                 ) : (
@@ -199,6 +195,44 @@ function Cartao({
 
 export default function Notas() {
   const { notas, conexoes, erro, recarregar } = useDados();
+  // Apagar com desfazer: a nota some da lista na hora e só é apagada de verdade depois de 6 s.
+  const [ocultas, setOcultas] = useState<Set<string>>(new Set());
+  const [desfazer, setDesfazer] = useState<string | null>(null);
+  const [erroApagar, setErroApagar] = useState<string | null>(null);
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  const apagarDeVez = useCallback(async (id: string) => {
+    timers.current.delete(id);
+    const { error } = await supabase.from("sc_notas").delete().eq("id", id);
+    if (error) setErroApagar(error.message);
+    setOcultas((o) => { const n = new Set(o); n.delete(id); return n; });
+    setDesfazer((d) => (d === id ? null : d));
+    await recarregar();
+  }, [recarregar]);
+
+  function agendarExclusao(id: string) {
+    setOcultas((o) => new Set(o).add(id));
+    setDesfazer(id);
+    timers.current.set(id, setTimeout(() => apagarDeVez(id), 6000));
+  }
+  function desfazerExclusao(id: string) {
+    const t = timers.current.get(id);
+    if (t) clearTimeout(t);
+    timers.current.delete(id);
+    setOcultas((o) => { const n = new Set(o); n.delete(id); return n; });
+    setDesfazer(null);
+  }
+  // Ao sair da tela, o que já foi apagado e não foi desfeito é concluído.
+  useEffect(() => {
+    const pendentes = timers.current;
+    return () => {
+      for (const [id, t] of pendentes) {
+        clearTimeout(t);
+        supabase.from("sc_notas").delete().eq("id", id).then(() => {});
+      }
+      pendentes.clear();
+    };
+  }, []);
   const [busca, setBusca] = useState("");
   const [achados, setAchados] = useState<{ ids: string[]; semantica: boolean } | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -267,9 +301,10 @@ export default function Notas() {
     return tag ? base.filter((n) => n.tags.includes(tag)) : base;
   }, [notas, achados, tag]);
 
-  function exportar(formato: "md" | "json") {
+  function exportar(formato: "md" | "json" | "obsidian") {
     const dia = new Date().toISOString().slice(0, 10);
     if (formato === "md") baixar(`segundo-cerebro-${dia}.md`, exportarMarkdown(notas ?? []), "text/markdown");
+    else if (formato === "obsidian") baixar(`segundo-cerebro-obsidian-${dia}.zip`, criarZip(montarCofre(notas ?? [], conexoes)), "application/zip");
     else baixar(`segundo-cerebro-${dia}.json`, JSON.stringify({ notas, conexoes }, null, 2), "application/json");
     setMenuExport(false);
   }
@@ -283,8 +318,9 @@ export default function Notas() {
             <Icon nome="baixar" className="h-4 w-4" /> Exportar
           </button>
           {menuExport && (
-            <div className="anim-fade-up absolute right-0 z-10 mt-2 w-44 overflow-hidden rounded-xl border border-line bg-card text-sm shadow-lg">
+            <div className="anim-fade-up absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-xl border border-line bg-card text-sm shadow-lg">
               <button onClick={() => exportar("md")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Markdown (.md)</button>
+              <button onClick={() => exportar("obsidian")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Obsidian (.zip)</button>
               <button onClick={() => exportar("json")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Completo (.json)</button>
             </div>
           )}
@@ -314,12 +350,19 @@ export default function Notas() {
       )}
 
       <ul className="mt-5 space-y-3">
-        {lista.map((n, i) => (
+        {lista.filter((n) => !ocultas.has(n.id)).map((n, i) => (
           <Cartao key={n.id} nota={n} notas={notas ?? []} conexoes={conexoes} indice={i}
             aberta={aberta === n.id} destaque={destaque === n.id}
-            aoAlternar={() => setAberta(aberta === n.id ? null : n.id)} recarregar={recarregar} />
+            aoAlternar={() => setAberta(aberta === n.id ? null : n.id)} aoApagar={() => agendarExclusao(n.id)} recarregar={recarregar} />
         ))}
       </ul>
+      {erroApagar && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erroApagar}</p>}
+      {desfazer && (
+        <div role="status" className="anim-fade-up glass fixed bottom-24 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4 rounded-2xl px-4 py-3 text-sm shadow-lg md:bottom-8">
+          <span>Nota apagada.</span>
+          <button onClick={() => desfazerExclusao(desfazer)} className="press font-medium text-accent">Desfazer</button>
+        </div>
+      )}
     </div>
   );
 }

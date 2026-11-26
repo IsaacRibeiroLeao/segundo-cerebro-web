@@ -10,6 +10,7 @@ import { usePerfil } from "@/lib/perfil";
 const itens = [
   { href: "/", nome: "Hoje", icone: "hoje" },
   { href: "/notas", nome: "Notas", icone: "notas" },
+  { href: "/biblia", nome: "Bíblia", icone: "biblia" },
   { href: "/conversar", nome: "Conversar", icone: "conversar" },
   { href: "/mapa", nome: "Mapa", icone: "mapa" },
   { href: "/linha-do-tempo", nome: "Tempo", icone: "tempo" },

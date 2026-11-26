@@ -46,6 +46,16 @@ export async function versiculo(ref: string): Promise<Versiculos> {
   return v;
 }
 
+const cacheCapitulos = new Map<string, Versiculos>();
+export async function capitulo(livro: number, cap: number): Promise<Versiculos> {
+  const chave = `${livro}:${cap}`;
+  const hit = cacheCapitulos.get(chave);
+  if (hit) return hit;
+  const v = await chamar<Versiculos>({ acao: "capitulo", livro, capitulo: cap });
+  cacheCapitulos.set(chave, v);
+  return v;
+}
+
 export const gerarRevisao = (dias = 7) =>
   chamar<{ revisao: { id?: string; inicio: string; fim: string; texto: string; created_at?: string }; fontes: Fonte[] }>({
     acao: "revisao",

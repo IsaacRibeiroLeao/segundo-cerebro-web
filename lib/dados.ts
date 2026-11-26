@@ -36,7 +36,7 @@ export function useDados() {
   return { notas, conexoes, erro, recarregar };
 }
 
-export function baixar(nome: string, conteudo: string, tipo: string) {
+export function baixar(nome: string, conteudo: string | Uint8Array<ArrayBuffer>, tipo: string) {
   const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
   const a = document.createElement("a");
   a.href = url;
