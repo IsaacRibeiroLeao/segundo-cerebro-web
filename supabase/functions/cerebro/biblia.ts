@@ -108,7 +108,7 @@ export function carregarBiblia(url: string) {
     cacheBiblia = fetch(url)
       .then(async (r) => {
         if (!r.ok) throw new Error(`Falha ao carregar a Bíblia (${r.status}).`);
-        const txt = (await r.text()).replace(/^﻿/, "");
+        const txt = (await r.text()).replace(/^\uFEFF/, "");
         return JSON.parse(txt);
       })
       .catch((e) => {
