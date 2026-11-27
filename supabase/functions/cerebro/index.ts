@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { extrairRefs, NOMES, textoDaRef, type Ref } from "./biblia.ts";
-import { embed, gerar, lerJson, SISTEMA, type Conteudo } from "./gemini.ts";
+import { embed, gerar, lerJson, SISTEMA, SISTEMA_PROSA, type Conteudo } from "./gemini.ts";
 import { CORS, HttpError, idDaNota, json, textoDe, type Supa } from "./util.ts";
 
 const BIBLIA_URL =
@@ -411,6 +411,43 @@ Deno.serve(async (req) => {
       ];
       const resposta = await gerar(SISTEMA, contents);
       return json({ resposta, fontes: fontes(notas) });
+    }
+
+    if (acao === "prosear") {
+      const mensagem = textoDe(body.mensagem, "mensagem", 4000);
+      const historico = Array.isArray(body.historico) ? body.historico.slice(-20) : [];
+
+      // Busca em cima da fala atual e da anterior, para pegar o assunto da conversa.
+      const ultimaDela = [...historico].reverse().find((h: { role: string }) => h.role !== "assistant") as { content?: string } | undefined;
+      const consulta = `${ultimaDela?.content ?? ""} ${mensagem}`.trim().slice(0, 1500);
+      let vetor: string | null = null;
+      try {
+        vetor = `[${(await embed(consulta, "query")).join(",")}]`;
+      } catch (e) {
+        if (!(e instanceof HttpError)) throw e;
+      }
+      const { data: achadas, error } = await supabase.rpc("sc_busca_hibrida", { consulta_texto: consulta, consulta: vetor, limite: 5 });
+      if (error) throw new HttpError(500, error.message);
+      const notas = await anexarPassagens(supabase, (achadas ?? []) as Nota[]);
+
+      const contents: Conteudo[] = [
+        ...historico.map((h: { role: string; content: string }) => ({
+          role: (h.role === "assistant" ? "model" : "user") as "user" | "model",
+          parts: [{ text: String(h.content ?? "") }],
+        })),
+        {
+          role: "user" as const,
+          parts: [{ text: notas.length ? `<notas>\n${formatarNotas(notas)}\n</notas>\n\n${mensagem}` : mensagem }],
+        },
+      ];
+      const bruto = await gerar(SISTEMA_PROSA, contents, { json: true, tokens: 900 });
+      const dados = lerJson(bruto);
+      const resposta = typeof dados?.resposta === "string" && dados.resposta.trim() ? dados.resposta.trim() : bruto.trim();
+      const p = dados?.percepcao as { texto?: unknown; passagem?: unknown } | null | undefined;
+      const percepcao = p && typeof p.texto === "string" && p.texto.trim()
+        ? { texto: p.texto.trim().slice(0, 600), passagem: typeof p.passagem === "string" ? p.passagem.trim().slice(0, 80) : "" }
+        : null;
+      return json({ resposta, percepcao, fontes: fontes(notas) });
     }
 
     if (acao === "versiculo") {

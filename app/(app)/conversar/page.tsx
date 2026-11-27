@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { conversar } from "@/lib/cerebro";
-import type { Mensagem } from "@/lib/types";
+import { conversar, processarNota, prosear } from "@/lib/cerebro";
+import { supabase } from "@/lib/supabase";
+import type { Mensagem, Percepcao } from "@/lib/types";
 import { ListaFontes, TextoComCitacoes } from "@/components/Citacoes";
 import Image from "next/image";
 import { Avatar } from "@/components/Avatar";
@@ -15,8 +16,13 @@ const SUGESTOES = [
 ];
 
 const CHAVE = "sc_chat_v1";
+const CHAVE_PROSA = "sc_prosa_v1";
+const CHAVE_MODO = "sc_chat_modo_v1";
+const ABERTURAS = ["Estou aqui. O que ficou no seu coração hoje?", "Sobre o que você está pensando ultimamente?", "Teve algo na leitura que não saiu da sua cabeça?"];
 
 export default function Conversar() {
+  const [modo, setModo] = useState<"conversa" | "notas">("conversa");
+  const [carregado, setCarregado] = useState(false);
   const [msgs, setMsgs] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -25,22 +31,53 @@ export default function Conversar() {
 
   useEffect(() => {
     try {
-      const salvo = localStorage.getItem(CHAVE);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      const m = localStorage.getItem(CHAVE_MODO) === "notas" ? "notas" : "conversa";
+      const salvo = localStorage.getItem(m === "notas" ? CHAVE : CHAVE_PROSA);
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setModo(m);
       if (salvo) setMsgs(JSON.parse(salvo));
+      /* eslint-enable react-hooks/set-state-in-effect */
     } catch {
       /* ignora */
     }
+    setCarregado(true);
   }, []);
 
   useEffect(() => {
+    if (!carregado) return;
     try {
-      localStorage.setItem(CHAVE, JSON.stringify(msgs.slice(-40)));
+      localStorage.setItem(modo === "notas" ? CHAVE : CHAVE_PROSA, JSON.stringify(msgs.slice(-40)));
     } catch {
       /* ignora */
     }
     fim.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs]);
+  }, [msgs, modo, carregado]);
+
+  function trocarModo(novo: "conversa" | "notas") {
+    if (novo === modo) return;
+    try {
+      localStorage.setItem(CHAVE_MODO, novo);
+      const salvo = localStorage.getItem(novo === "notas" ? CHAVE : CHAVE_PROSA);
+      setMsgs(salvo ? JSON.parse(salvo) : []);
+    } catch {
+      setMsgs([]);
+    }
+    setErro(null);
+    setModo(novo);
+  }
+
+  async function decidirPercepcao(i: number, p: Percepcao, guardar: boolean) {
+    if (guardar) {
+      const { data, error } = await supabase
+        .from("sc_notas")
+        .insert({ conteudo: `Percepção numa conversa: ${p.texto}`, referencias: p.passagem ? [p.passagem] : [], tags: ["percepção"] })
+        .select("id")
+        .single();
+      if (error || !data) { setErro(error?.message ?? "Não foi possível guardar."); return; }
+      void processarNota(data.id).catch(() => undefined);
+    }
+    setMsgs((m) => m.map((x, j) => (j === i && x.percepcao ? { ...x, percepcao: { ...x.percepcao, estado: guardar ? "guardada" : "dispensada" } } : x)));
+  }
 
   async function enviar(pergunta: string) {
     const q = pergunta.trim();
@@ -51,8 +88,13 @@ export default function Conversar() {
     setMsgs((m) => [...m, { role: "user", content: q }]);
     setEnviando(true);
     try {
-      const r = await conversar(q, historico);
-      setMsgs((m) => [...m, { role: "assistant", content: r.resposta, fontes: r.fontes }]);
+      if (modo === "conversa") {
+        const r = await prosear(q, historico);
+        setMsgs((m) => [...m, { role: "assistant", content: r.resposta, fontes: r.fontes, percepcao: r.percepcao }]);
+      } else {
+        const r = await conversar(q, historico);
+        setMsgs((m) => [...m, { role: "assistant", content: r.resposta, fontes: r.fontes }]);
+      }
     } catch (e) {
       setErro((e as Error).message);
     }
@@ -69,10 +111,24 @@ export default function Conversar() {
           </button>
         )}
       </div>
-      <p className="mt-1 text-muted">Pense junto com as suas anotações.</p>
+      <div role="tablist" className="mt-3 inline-flex rounded-2xl border border-line bg-card p-1 text-sm">
+        {([["conversa", "Conversa"], ["notas", "Perguntar às notas"]] as const).map(([k, nome]) => (
+          <button key={k} role="tab" aria-selected={modo === k} onClick={() => trocarModo(k)}
+            className={`press rounded-xl px-3 py-1.5 transition ${modo === k ? "btn-accent font-medium" : "text-muted"}`}>{nome}</button>
+        ))}
+      </div>
+      <p className="mt-2 text-muted">{modo === "conversa" ? "Converse como com um amigo. Se eu perceber algo, aviso." : "Pense junto com as suas anotações."}</p>
 
       <div className="mt-6 flex-1 space-y-5">
-        {msgs.length === 0 && (
+        {msgs.length === 0 && modo === "conversa" && (
+          <div className="grid gap-2">
+            {ABERTURAS.map((s) => (
+              <button key={s} onClick={() => enviar(s)} className="press lift rounded-2xl border border-line bg-card px-4 py-3 text-left text-sm hover:border-accent/60">{s}</button>
+            ))}
+            <p className="mt-2 text-xs text-muted">Eu escuto, lembro do que você já escreveu e, de vez em quando, devolvo uma percepção. Ela é uma hipótese para você levar em oração; quem discerne é você.</p>
+          </div>
+        )}
+        {msgs.length === 0 && modo === "notas" && (
           <div className="grid gap-2">
             {SUGESTOES.map((s) => (
               <button
@@ -104,6 +160,21 @@ export default function Conversar() {
               <div className="min-w-0 rounded-2xl rounded-bl-md border border-line bg-card px-4 py-3 shadow-sm">
                 <TextoComCitacoes texto={m.content} fontes={m.fontes ?? []} />
                 <ListaFontes fontes={(m.fontes ?? []).filter((f) => m.content.includes(`[${f.n}]`))} />
+                {m.percepcao && m.percepcao.estado !== "dispensada" && (
+                  <div className="cartao-ouro anim-fade-up mt-3 rounded-xl p-3 text-sm">
+                    <p className="text-xs font-medium uppercase tracking-wide text-accent">✦ Percebi algo</p>
+                    <p className="mt-1 font-serif leading-relaxed">{m.percepcao.texto}</p>
+                    {m.percepcao.passagem && <p className="mt-1 text-xs text-muted">{m.percepcao.passagem}</p>}
+                    {m.percepcao.estado === "guardada" ? (
+                      <p className="mt-2 text-xs text-accent">✓ Guardada nas suas notas</p>
+                    ) : (
+                      <div className="mt-2 flex gap-3">
+                        <button onClick={() => decidirPercepcao(i, m.percepcao!, true)} className="press font-medium text-accent">Guardar como nota</button>
+                        <button onClick={() => decidirPercepcao(i, m.percepcao!, false)} className="press text-muted hover:text-ink">Dispensar</button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ),
@@ -136,7 +207,7 @@ export default function Conversar() {
           aria-label="Pergunta sobre suas notas"
           onChange={(e) => { setTexto(e.target.value); e.currentTarget.style.height = "auto"; e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`; }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
-          placeholder="Pergunte algo sobre suas notas… (Shift+Enter quebra a linha)"
+          placeholder={modo === "conversa" ? "Conte o que está no seu coração… (Shift+Enter quebra a linha)" : "Pergunte algo sobre suas notas… (Shift+Enter quebra a linha)"}
           className="flex-1 resize-none rounded-xl border border-line bg-card px-4 py-3 shadow-sm outline-none focus:border-accent"
         />
         <button

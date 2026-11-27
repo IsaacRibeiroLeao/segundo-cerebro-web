@@ -40,7 +40,8 @@ export type Fonte = {
   motivo?: string;
 };
 
-export type Mensagem = { role: "user" | "assistant"; content: string; fontes?: Fonte[] };
+export type Percepcao = { texto: string; passagem: string; estado?: "guardada" | "dispensada" };
+export type Mensagem = { role: "user" | "assistant"; content: string; fontes?: Fonte[]; percepcao?: Percepcao | null };
 
 export type Versiculos = {
   rotulo: string;

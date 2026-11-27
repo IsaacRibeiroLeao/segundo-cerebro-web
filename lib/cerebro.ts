@@ -37,6 +37,9 @@ export const buscar = (consulta: string) =>
 export const conversar = (mensagem: string, historico: { role: string; content: string }[]) =>
   chamar<{ resposta: string; fontes: Fonte[] }>({ acao: "conversar", mensagem, historico });
 
+export const prosear = (mensagem: string, historico: { role: string; content: string }[]) =>
+  chamar<{ resposta: string; percepcao: { texto: string; passagem: string } | null; fontes: Fonte[] }>({ acao: "prosear", mensagem, historico });
+
 const cacheVersiculos = new Map<string, Versiculos>();
 export async function versiculo(ref: string): Promise<Versiculos> {
   const hit = cacheVersiculos.get(ref);
