@@ -14,7 +14,7 @@ type Reconhecimento = {
 };
 
 // Ditado por voz com a Web Speech API (Chrome, Edge e Safari).
-export function useDitado(aoFinalizarTrecho: (texto: string) => void) {
+export function useDitado(aoFinalizarTrecho: (texto: string) => void, idioma = "en-US") {
   const [ativo, setAtivo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const rec = useRef<Reconhecimento | null>(null);
@@ -36,7 +36,7 @@ export function useDitado(aoFinalizarTrecho: (texto: string) => void) {
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
     const r = new Ctor();
-    r.lang = "pt-BR";
+    r.lang = idioma;
     r.continuous = true;
     r.interimResults = false;
     r.onresult = (e) => {
@@ -44,13 +44,13 @@ export function useDitado(aoFinalizarTrecho: (texto: string) => void) {
         if (e.results[i].isFinal) cb.current(e.results[i][0].transcript.trim());
       }
     };
-    r.onerror = (e) => setErro(e.error === "not-allowed" ? "Permita o uso do microfone no navegador." : "Não foi possível ouvir agora.");
+    r.onerror = (e) => setErro(e.error === "not-allowed" ? "Allow microphone use in your browser." : "Couldn't listen right now.");
     r.onend = () => setAtivo(false);
     setErro(null);
     rec.current = r;
     r.start();
     setAtivo(true);
-  }, [ativo]);
+  }, [ativo, idioma]);
 
   useEffect(() => () => rec.current?.stop(), []);
   return { ativo, suportado, erro, alternar };

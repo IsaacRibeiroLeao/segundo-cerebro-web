@@ -14,7 +14,7 @@ import { limparCitacoes } from "@/lib/texto";
 type Filtro = { tipo: "tag" | "livro"; valor: string | number } | null;
 
 function mesAno(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 export default function LinhaDoTempo() {
@@ -94,14 +94,14 @@ export default function LinhaDoTempo() {
 
   return (
     <div>
-      <h1 className="font-serif text-3xl">Notas</h1>
+      <h1 className="font-serif text-3xl">Notes</h1>
       <ModoNotas atual="tempo" />
-      <p className="mt-1 text-muted">Veja como cada tema foi crescendo ao longo dos meses.</p>
+      <p className="mt-1 text-muted">See how each theme has grown over the months.</p>
 
       <div className="mt-5 inline-flex rounded-xl border border-line bg-card p-1 text-sm">
         {(["notas", "revisoes"] as const).map((a) => (
           <button key={a} onClick={() => setAba(a)} className={`press rounded-lg px-4 py-1.5 transition-colors ${aba === a ? "bg-accent text-paper" : "text-muted hover:text-ink"}`}>
-            {a === "notas" ? "Notas" : "Revisões"}
+            {a === "notas" ? "Notas" : "Reviews"}
           </button>
         ))}
       </div>
@@ -111,26 +111,26 @@ export default function LinhaDoTempo() {
       {aba === "notas" ? (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={() => escolher(null)} className={chip(!filtro)}>Tudo</button>
+            <button onClick={() => escolher(null)} className={chip(!filtro)}>All</button>
             {tags.map((t) => <button key={t} onClick={() => escolher({ tipo: "tag", valor: t })} className={chip(filtro?.tipo === "tag" && filtro.valor === t)}>#{t}</button>)}
             {livros.map((l) => <button key={l} onClick={() => escolher({ tipo: "livro", valor: l })} className={chip(filtro?.tipo === "livro" && filtro.valor === l)}>{NOMES_LIVROS[l]}</button>)}
           </div>
 
           {filtro && lista.length >= 2 && (
             <div className="anim-fade-up mt-4 rounded-2xl border border-accent/40 bg-accent-soft p-4">
-              {pensando ? <Pensando texto="Lendo o caminho deste tema" /> : evo ? (
+              {pensando ? <Pensando texto="Tracing this theme's path" /> : evo ? (
                 <>
-                  <p className="text-xs font-medium uppercase tracking-wide text-accent">Como {evo.tema} evoluiu</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-accent">How {evo.tema} evolved</p>
                   <div className="mt-2"><TextoComCitacoes texto={evo.texto} fontes={evo.fontes} /></div>
                 </>
               ) : (
-                <button onClick={contarEvolucao} className="press text-sm font-medium text-accent hover:underline">Como esse tema evoluiu? →</button>
+                <button onClick={contarEvolucao} className="press text-sm font-medium text-accent hover:underline">How has this theme evolved? →</button>
               )}
             </div>
           )}
 
-          {!notas && <p className="mt-8"><Pensando texto="Carregando" /></p>}
-          {notas && lista.length === 0 && <p className="mt-8 text-center text-muted">Nenhuma nota nesse recorte.</p>}
+          {!notas && <p className="mt-8"><Pensando texto="Loading" /></p>}
+          {notas && lista.length === 0 && <p className="mt-8 text-center text-muted">No notes in this selection.</p>}
 
           <div className="relative mt-8 ml-3 border-l border-line pl-6">
             {grupos.map(([mes, itens], gi) => (
@@ -161,10 +161,10 @@ export default function LinhaDoTempo() {
       ) : (
         <div className="mt-5">
           <button onClick={novaRevisao} disabled={gerando} className="press btn-accent rounded-xl px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
-            {gerando ? "Gerando…" : "Gerar revisão dos últimos 7 dias"}
+            {gerando ? "Generating…" : "Generate review of the last 7 days"}
           </button>
-          {gerando && <p className="mt-3"><Pensando texto="Relendo a sua semana" /></p>}
-          {revisoes && revisoes.length === 0 && !gerando && <p className="mt-6 text-center text-muted">Nenhuma revisão ainda.</p>}
+          {gerando && <p className="mt-3"><Pensando texto="Rereading your week" /></p>}
+          {revisoes && revisoes.length === 0 && !gerando && <p className="mt-6 text-center text-muted">No reviews yet.</p>}
           <ul className="mt-5 space-y-3">
             {(revisoes ?? []).map((r, i) => (
               <li key={r.id} className="anim-fade-up rounded-2xl border border-line bg-card p-5" style={{ animationDelay: `${i * 50}ms` }}>

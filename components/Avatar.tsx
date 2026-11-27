@@ -6,10 +6,10 @@ export function Avatar({ tamanho = 40, className = "" }: { tamanho?: number; cla
   const inicial = (perfil?.nome ?? "").trim().charAt(0).toUpperCase();
   const estilo = { width: tamanho, height: tamanho, fontSize: tamanho * 0.42 };
   if (perfil?.avatar) {
-    return <img src={perfil.avatar} alt="Sua foto de perfil" style={estilo} className={`shrink-0 rounded-full object-cover ring-2 ring-card ${className}`} />;
+    return <img src={perfil.avatar} alt="Your profile photo" style={estilo} className={`shrink-0 rounded-full object-cover ring-2 ring-card ${className}`} />;
   }
   return (
-    <span style={estilo} className={`grid shrink-0 place-items-center rounded-full bg-accent-soft font-serif text-accent ring-2 ring-card ${className}`} aria-label="Perfil">
+    <span style={estilo} className={`grid shrink-0 place-items-center rounded-full bg-accent-soft font-serif text-accent ring-2 ring-card ${className}`} aria-label="Profile">
       {inicial || "·"}
     </span>
   );

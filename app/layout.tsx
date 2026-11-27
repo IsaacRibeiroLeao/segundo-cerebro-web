@@ -7,9 +7,9 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Segundo Cérebro",
-  description: "Suas anotações de estudo bíblico, conectadas.",
-  appleWebApp: { capable: true, title: "Segundo Cérebro", statusBarStyle: "default" },
+  title: "Second Brain",
+  description: "Your Bible study notes, connected.",
+  appleWebApp: { capable: true, title: "Second Brain", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('sc_tema');if(t)document.documentElement.dataset.theme=t==='claro'?'light':'dark'}catch(e){}" }} />
       </head>

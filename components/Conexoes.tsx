@@ -17,7 +17,7 @@ export function conexoesDaNota(id: string, conexoes: Conexao[]) {
 // Lista "por que está ligada": cada conexão com o motivo.
 export function ListaConexoes({ notaId, conexoes, notas }: { notaId: string; conexoes: Conexao[]; notas: Nota[] }) {
   const lista = conexoesDaNota(notaId, conexoes);
-  if (!lista.length) return <p className="text-sm text-muted">Ainda sem conexões com outras notas.</p>;
+  if (!lista.length) return <p className="text-sm text-muted">No connections to other notes yet.</p>;
   const porId = new Map(notas.map((n) => [n.id, n]));
   return (
     <ul className="space-y-2">

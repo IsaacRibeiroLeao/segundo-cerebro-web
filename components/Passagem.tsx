@@ -10,20 +10,20 @@ export function Passagem({ rotulo, sugerida, motivo }: { rotulo: string; sugerid
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState<Versiculos | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [carregando, setCarregando] = useState(false);
+  const [carregando, setLoading] = useState(false);
 
   async function alternar() {
     const novo = !aberto;
     setAberto(novo);
     if (novo && !texto && !carregando) {
-      setCarregando(true);
+      setLoading(true);
       setErro(null);
       try {
         setTexto(await versiculo(rotulo));
       } catch (e) {
-        setErro(e instanceof Error ? e.message : "Não foi possível carregar o texto.");
+        setErro(e instanceof Error ? e.message : "Couldn't load the text.");
       } finally {
-        setCarregando(false);
+        setLoading(false);
       }
     }
   }
@@ -59,7 +59,7 @@ export function Passagem({ rotulo, sugerida, motivo }: { rotulo: string; sugerid
                   </span>
                 ))}
               </p>
-              {texto.truncado && <p className="mt-2 text-xs text-muted">Mostrando os primeiros versículos de {texto.total}.</p>}
+              {texto.truncado && <p className="mt-2 text-xs text-muted">Showing the first verses of {texto.total}.</p>}
             </>
           )}
         </div>

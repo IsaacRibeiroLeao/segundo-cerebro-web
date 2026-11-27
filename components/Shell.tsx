@@ -10,11 +10,11 @@ import { AlternarTema } from "./AlternarTema";
 import { usePerfil } from "@/lib/perfil";
 
 const itens = [
-  { href: "/", nome: "Hoje", icone: "hoje" },
-  { href: "/notas", nome: "Notas", icone: "notas" },
-  { href: "/biblia", nome: "Bíblia", icone: "biblia" },
-  { href: "/conversar", nome: "Conversar", icone: "conversar" },
-  { href: "/mapa", nome: "Mapa", icone: "mapa" },
+  { href: "/", nome: "Today", icone: "hoje" },
+  { href: "/notas", nome: "Notes", icone: "notas" },
+  { href: "/biblia", nome: "Bible", icone: "biblia" },
+  { href: "/conversar", nome: "Chat", icone: "conversar" },
+  { href: "/mapa", nome: "Map", icone: "mapa" },
 ] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-line md:px-4 md:py-7 md:sticky md:top-0 md:h-screen">
         <div className="flex items-center gap-3 px-2">
           <Image src="/logo.png" alt="" width={42} height={42} className="rounded-xl shadow-[0_0_24px_-6px_var(--accent)]" />
-          <p className="font-serif text-xl leading-tight">Segundo<br /><span className="text-base text-accent">Cérebro</span></p>
+          <p className="font-serif text-xl leading-tight">Second<br /><span className="text-base text-accent">Brain</span></p>
         </div>
         <nav className="mt-9 flex flex-col gap-1.5">
           {itens.map((i) => (
@@ -50,21 +50,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div className="px-2"><AlternarTema /></div>
           <Link href="/perfil" className={`press flex items-center gap-3 rounded-2xl px-2.5 py-2 transition ${ativo("/perfil") ? "item-ativo text-ink" : "text-muted hover:bg-accent-soft/50 hover:text-ink"}`}>
             <Avatar tamanho={34} />
-            <span className="truncate">{nomePerfil || "Meu perfil"}</span>
+            <span className="truncate">{nomePerfil || "My profile"}</span>
           </Link>
         </div>
       </aside>
 
-      <Link href="/perfil" aria-label="Meu perfil" className="press md:hidden fixed right-4 top-4 z-10 rounded-full shadow-md">
+      <Link href="/perfil" aria-label="My profile" className="press md:hidden fixed right-4 top-4 z-10 rounded-full shadow-md">
         <Avatar tamanho={40} />
       </Link>
 
       <main className="relative flex-1 pb-28 md:pb-0 xl:pt-14">
         <div className="absolute right-6 top-4 hidden items-center gap-2 xl:flex">
-          <Link href="/notas?busca=1" aria-label="Buscar nas notas" className="tile press" style={{ width: 38, height: 38 }}>
+          <Link href="/notas?busca=1" aria-label="Search notes" className="tile press" style={{ width: 38, height: 38 }}>
             <Icon nome="busca" className="h-[19px] w-[19px]" />
           </Link>
-          <Link href="/?novo=1" aria-label="Nova nota" className="tile tile-on press" style={{ width: 38, height: 38 }}>
+          <Link href="/?novo=1" aria-label="New note" className="tile tile-on press" style={{ width: 38, height: 38 }}>
             <Icon nome="mais" className="h-5 w-5" />
           </Link>
         </div>
@@ -74,13 +74,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <nav className="glass md:hidden fixed bottom-3 inset-x-3 z-10 flex items-end rounded-3xl px-1 py-1.5">
         {abas.map((i) =>
           i.href === "/biblia" ? (
-            <Link key={i.href} href={i.href} aria-label="Bíblia" className="press relative flex flex-1 flex-col items-center gap-0.5 text-[11px]">
+            <Link key={i.href} href={i.href} aria-label="Bible" className="press relative flex flex-1 flex-col items-center gap-0.5 text-[11px]">
               <span
                 className={`-mt-9 grid h-[62px] w-[62px] place-items-center rounded-full bg-white text-accent shadow-[0_6px_20px_rgba(0,0,0,0.35)] ring-4 transition ${ativo(i.href) ? "ring-accent" : "ring-paper"}`}
               >
                 <Icon nome="biblia" className="h-8 w-8" />
               </span>
-              <span className={ativo(i.href) ? "font-medium text-accent" : "text-muted"}>Bíblia</span>
+              <span className={ativo(i.href) ? "font-medium text-accent" : "text-muted"}>Bible</span>
             </Link>
           ) : (
             <Link

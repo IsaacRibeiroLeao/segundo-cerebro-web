@@ -33,9 +33,9 @@ const ESTILO_GRUPO: Record<GrupoConexao, { cor: string; dash?: string }> = {
 const PRIORIDADE: GrupoConexao[] = ["passagem", "sentido", "tema"];
 
 const PERIODOS = [
-  { id: "30", nome: "30 dias", dias: 30 },
-  { id: "90", nome: "90 dias", dias: 90 },
-  { id: "365", nome: "1 ano", dias: 365 },
+  { id: "30", nome: "30 days", dias: 30 },
+  { id: "90", nome: "90 days", dias: 90 },
+  { id: "365", nome: "1 year", dias: 365 },
   { id: "tudo", nome: "Tudo", dias: 0 },
 ];
 
@@ -135,8 +135,8 @@ export default function Mapa() {
 
   return (
     <div>
-      <h1 className="font-serif text-3xl">Mapa</h1>
-      <p className="mt-1 text-muted">Toque em uma ligação para ver por que as duas notas se conectam.</p>
+      <h1 className="font-serif text-3xl">Map</h1>
+      <p className="mt-1 text-muted">Tap a link to see why the two notes connect.</p>
 
       <div className="mt-4 space-y-3">
         <div className="flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ export default function Mapa() {
         </div>
         {todasTags.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setTag(null)} className={chip(!tag)}>Todas as tags</button>
+            <button onClick={() => setTag(null)} className={chip(!tag)}>All tags</button>
             {todasTags.map((t) => <button key={t} onClick={() => setTag(tag === t ? null : t)} className={chip(tag === t)}>#{t}</button>)}
           </div>
         )}
@@ -158,21 +158,21 @@ export default function Mapa() {
           ))}
           <label className="ml-1 inline-flex items-center gap-2 text-muted">
             <input type="checkbox" checked={soConectadas} onChange={(e) => setSoConectadas(e.target.checked)} className="accent-[var(--accent)]" />
-            Só notas conectadas
+            Connected notes only
           </label>
         </div>
       </div>
 
       {erro && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
-      {!notas && <p className="mt-8"><Pensando texto="Montando o mapa" /></p>}
+      {!notas && <p className="mt-8"><Pensando texto="Building the map" /></p>}
 
       {notas && (
         <div className="mt-4 grid gap-4 md:grid-cols-[1fr_320px]">
           <div className="relative overflow-hidden rounded-2xl border border-line bg-card">
             {nos.length === 0 ? (
-              <p className="p-10 text-center text-muted">{notas.length === 0 ? "O mapa aparece quando você escrever suas primeiras notas." : "Nada neste recorte."}</p>
+              <p className="p-10 text-center text-muted">{notas.length === 0 ? "The map appears once you write your first notes." : "Nothing in this selection."}</p>
             ) : (
-              <svg viewBox={viewBox} className="block h-auto w-full touch-manipulation" role="img" aria-label="Mapa de conexões entre as suas notas" onClick={() => setSel(null)}>
+              <svg viewBox={viewBox} className="block h-auto w-full touch-manipulation" role="img" aria-label="Map of connections between your notes" onClick={() => setSel(null)}>
                 <g>
                   {arestas.map((e) => {
                     const a = porId.get(e.a)!;
@@ -229,14 +229,14 @@ export default function Mapa() {
             )}
 
             <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-xl border border-line bg-card/95 text-lg shadow-sm">
-              <button onClick={() => setZoom((z) => Math.min(2.2, z + 0.25))} className="press px-3 py-1 hover:bg-accent-soft" aria-label="Aproximar">+</button>
-              <button onClick={() => setZoom((z) => Math.max(0.8, z - 0.25))} className="press border-t border-line px-3 py-1 hover:bg-accent-soft" aria-label="Afastar">−</button>
+              <button onClick={() => setZoom((z) => Math.min(2.2, z + 0.25))} className="press px-3 py-1 hover:bg-accent-soft" aria-label="Zoom in">+</button>
+              <button onClick={() => setZoom((z) => Math.max(0.8, z - 0.25))} className="press border-t border-line px-3 py-1 hover:bg-accent-soft" aria-label="Zoom out">−</button>
             </div>
           </div>
 
           {(noSel || arestaSel) && (
             <aside key={sel?.id} className="anim-panel fixed inset-x-0 bottom-16 z-20 max-h-[62vh] overflow-y-auto rounded-t-3xl border border-line bg-card p-5 shadow-2xl md:static md:z-auto md:max-h-[640px] md:rounded-2xl md:shadow-none">
-              <button onClick={() => setSel(null)} className="press float-right text-sm text-muted hover:text-ink" aria-label="Fechar">Fechar ✕</button>
+              <button onClick={() => setSel(null)} className="press float-right text-sm text-muted hover:text-ink" aria-label="Close">Close ✕</button>
 
               {noSel && (
                 <div className="space-y-4">
@@ -247,8 +247,8 @@ export default function Mapa() {
                   </div>
                   {noSel.nota.tags.length > 0 && <p className="flex flex-wrap gap-1.5 text-xs text-muted">{noSel.nota.tags.map((t) => <span key={t}>#{t}</span>)}</p>}
                   <div>
-                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Por que está ligada</p>
-                    {conexoesDoNo(noSel.nota.id).length === 0 && <p className="text-sm text-muted">Nenhuma conexão neste recorte.</p>}
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Why it&apos;s linked</p>
+                    {conexoesDoNo(noSel.nota.id).length === 0 && <p className="text-sm text-muted">No connections in this selection.</p>}
                     <ul className="space-y-2">
                       {conexoesDoNo(noSel.nota.id).map(({ aresta, outro }) => {
                         const o = porId.get(outro);
@@ -265,13 +265,13 @@ export default function Mapa() {
                       })}
                     </ul>
                   </div>
-                  <Link href={`/notas#${noSel.nota.id}`} className="press inline-block text-sm font-medium text-accent hover:underline">Abrir nota →</Link>
+                  <Link href={`/notas#${noSel.nota.id}`} className="press inline-block text-sm font-medium text-accent hover:underline">Open note →</Link>
                 </div>
               )}
 
               {arestaSel && (
                 <div className="space-y-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Por que estas notas se ligam</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Why these notes link</p>
                   <ul className="space-y-2">
                     {arestaSel.conexoes.map((c) => (
                       <li key={c.id} className="rounded-xl bg-accent-soft p-3 text-sm">
@@ -299,12 +299,12 @@ export default function Mapa() {
 
       {nos.length > 0 && (
         <div className="anim-fade-in mt-4 rounded-2xl border border-line bg-card p-4 text-xs text-muted">
-          <p className="font-medium text-ink">Como ler o mapa</p>
+          <p className="font-medium text-ink">How to read the map</p>
           <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
-            <li><span aria-hidden="true">❖</span> nota com passagem sua · <span aria-hidden="true">✦</span> passagem sugerida (anel tracejado)</li>
-            <li>Tamanho = quantas ligações a nota tem</li>
-            <li>Cor = tema principal (primeira tag ou livro)</li>
-            <li>Linha contínua = sentido · tracejada = passagem · pontilhada = tema</li>
+            <li><span aria-hidden="true">❖</span> note with your passage · <span aria-hidden="true">✦</span> suggested passage (dashed ring)</li>
+            <li>Size = how many links the note has</li>
+            <li>Color = main theme (first tag or book)</li>
+            <li>Solid line = meaning · dashed = passage · dotted = theme</li>
           </ul>
           {temas.length > 0 && (
             <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1">

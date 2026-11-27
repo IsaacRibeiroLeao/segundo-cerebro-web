@@ -37,7 +37,7 @@ export function usePerfil() {
 
   const salvar = useCallback(async (novo: Partial<Perfil>) => {
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) throw new Error("Sessão expirada. Entre de novo.");
+    if (!u.user) throw new Error("Session expired. Please sign in again.");
     const prox = { nome: estado?.nome ?? null, avatar: estado?.avatar ?? null, ...novo };
     const { error } = await supabase.from("sc_perfil").upsert({ user_id: u.user.id, ...prox, atualizado_em: new Date().toISOString() });
     if (error) throw new Error(error.message);
@@ -61,7 +61,7 @@ export function reduzirImagem(arquivo: File, lado = 256): Promise<string> {
       URL.revokeObjectURL(url);
       ok(c.toDataURL("image/jpeg", 0.82));
     };
-    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("Não consegui ler essa imagem.")); };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("I couldn't read that image.")); };
     img.src = url;
   });
 }

@@ -49,24 +49,24 @@ export function RevisaoCard() {
   return (
     <section className="anim-fade-up mt-8 rounded-2xl border border-line bg-card p-5" style={{ animationDelay: "120ms" }}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-serif text-xl">Revisão da semana</h2>
+        <h2 className="font-serif text-xl">Weekly review</h2>
         {revisao && (
           <button onClick={gerar} disabled={gerando} className="press text-sm text-muted hover:text-ink disabled:opacity-50">
-            Gerar de novo
+            Generate again
           </button>
         )}
       </div>
       {gerando ? (
-        <p className="mt-3"><Pensando texto="Relendo a sua semana" /></p>
+        <p className="mt-3"><Pensando texto="Rereading your week" /></p>
       ) : recente && revisao ? (
         <div className="anim-fade-in mt-3">
           {fontes.length ? <TextoComCitacoes texto={revisao.texto} fontes={fontes} /> : <p className="whitespace-pre-wrap leading-relaxed">{limparCitacoes(revisao.texto)}</p>}
         </div>
       ) : (
         <div className="mt-3">
-          <p className="text-sm text-muted">Um resumo do que o Senhor tem falado com você nos últimos 7 dias, com temas, passagens e uma pergunta para a próxima semana.</p>
+          <p className="text-sm text-muted">A summary of what the Lord has been saying to you over the last 7 days, with themes, passages and a question for next week.</p>
           <button onClick={gerar} className="press btn-accent mt-4 rounded-xl px-4 py-2 text-sm font-medium text-paper">
-            Gerar revisão
+            Generate review
           </button>
         </div>
       )}

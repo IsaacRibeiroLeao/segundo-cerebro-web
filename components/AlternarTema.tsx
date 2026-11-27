@@ -24,7 +24,7 @@ export function AlternarTema() {
   return (
     <button
       onClick={alternar}
-      aria-label={tema === "escuro" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
+      aria-label={tema === "escuro" ? "Switch to light theme" : "Switch to dark theme"}
       className="press flex items-center gap-2 rounded-full border border-line px-1 py-1 text-muted"
     >
       <span className={`tile ${tema === "claro" ? "tile-on" : ""}`} style={{ width: 28, height: 28, borderRadius: 999 }}><Icon nome="sol" className="h-4 w-4" /></span>

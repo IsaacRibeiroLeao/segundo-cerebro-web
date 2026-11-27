@@ -25,7 +25,7 @@ function useLargo() {
   );
 }
 
-const ORIGEM: Record<Reflexao["origem"], string> = { auto: "Ao guardar", edicao: "Após editar", manual: "Pedida por você" };
+const ORIGEM: Record<Reflexao["origem"], string> = { auto: "On save", edicao: "After editing", manual: "Requested by you" };
 
 function Cartao({
   nota, notas, conexoes, aberta, destaque, aoAlternar, aoApagar, recarregar, indice,
@@ -78,7 +78,7 @@ function Cartao({
     try {
       await processarNota(nota.id, "edicao");
     } catch (e) {
-      setErro(`Alterações salvas, mas a nova reflexão falhou: ${(e as Error).message}`);
+      setErro(`Changes saved, but the new reflection failed: ${(e as Error).message}`);
     }
     setVersoes(null);
     await recarregar();
@@ -109,7 +109,7 @@ function Cartao({
           <span>{formatarData(nota.created_at)}</span>
           {refsUsuario.map((r) => <span key={r.rotulo} className="rounded-full bg-accent-soft px-2 py-0.5 text-accent">{r.rotulo}</span>)}
           {refsIa.map((r) => <span key={r.rotulo} className="rounded-full border border-dashed border-sage px-2 py-0.5 text-sage">✦ {r.rotulo}</span>)}
-          {nConexoes > 0 && <span className="ml-auto">{nConexoes} {nConexoes === 1 ? "conexão" : "conexões"}</span>}
+          {nConexoes > 0 && <span className="ml-auto">{nConexoes} {nConexoes === 1 ? "connection" : "connections"}</span>}
         </div>
         <p className={`mt-2 whitespace-pre-wrap font-serif leading-relaxed ${aberta ? "" : "line-clamp-3"}`}>{nota.conteudo}</p>
         {nota.tags.length > 0 && (
@@ -121,24 +121,24 @@ function Cartao({
         <div className="anim-expand space-y-5 border-t border-line p-4">
           {editando ? (
             <div className="space-y-2">
-              <textarea aria-label="Texto da nota" value={texto} onChange={(e) => setTexto(e.target.value)} rows={6}
+              <textarea aria-label="Note text" value={texto} onChange={(e) => setTexto(e.target.value)} rows={6}
                 className="w-full resize-y rounded-xl border border-line bg-paper p-3 font-serif leading-relaxed outline-none focus:border-accent" />
               <div className="grid gap-2 sm:grid-cols-2">
-                <input aria-label="Passagem" value={refs} onChange={(e) => setRefs(e.target.value)} placeholder="Passagem (opcional)"
+                <input aria-label="Passage" value={refs} onChange={(e) => setRefs(e.target.value)} placeholder="Passage (optional)"
                   className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent" />
                 <input aria-label="Tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags"
                   className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-accent" />
               </div>
               <div className="flex gap-2">
-                <button onClick={salvarEdicao} disabled={!texto.trim() || ocupado !== null} className="press btn-accent rounded-xl px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">Salvar e refazer reflexão</button>
-                <button onClick={() => setEditando(false)} className="press rounded-xl px-4 py-2 text-sm text-muted hover:text-ink">Cancelar</button>
+                <button onClick={salvarEdicao} disabled={!texto.trim() || ocupado !== null} className="press btn-accent rounded-xl px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">Save and redo reflection</button>
+                <button onClick={() => setEditando(false)} className="press rounded-xl px-4 py-2 text-sm text-muted hover:text-ink">Cancel</button>
               </div>
             </div>
           ) : (
             <>
               {(refsUsuario.length > 0 || refsIa.length > 0) && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Passagem e contexto</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Passage and context</p>
                   <div className="flex flex-wrap gap-2">
                     {refsUsuario.map((r) => <Passagem key={r.rotulo} rotulo={r.rotulo} />)}
                     {refsIa.map((r) => <Passagem key={r.rotulo} rotulo={r.rotulo} sugerida motivo={nota.passagem_ia?.motivo} />)}
@@ -149,28 +149,28 @@ function Cartao({
               <TagsSugeridas nota={nota} aoMudar={recarregar} />
 
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Reflexão</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">Reflection</p>
                 {ocupado === "refletindo" ? (
-                  <p className="mt-2"><Pensando texto="Pensando de novo sobre esta nota" /></p>
+                  <p className="mt-2"><Pensando texto="Thinking again about this note" /></p>
                 ) : nota.reflexao ? (
                   nota.reflexao_fontes?.length ? <div className="mt-2"><TextoComCitacoes texto={nota.reflexao} fontes={nota.reflexao_fontes} /></div> : <p className="mt-2 whitespace-pre-wrap leading-relaxed">{limparCitacoes(nota.reflexao)}</p>
                 ) : (
-                  <p className="mt-2 text-sm text-muted">Ainda sem reflexão.</p>
+                  <p className="mt-2 text-sm text-muted">No reflection yet.</p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-3 text-sm">
                   <button onClick={novaReflexao} disabled={ocupado !== null} className="press inline-flex items-center gap-1.5 text-accent hover:underline disabled:opacity-50">
-                    <Icon nome="refazer" className="h-4 w-4" /> Gerar nova reflexão
+                    <Icon nome="refazer" className="h-4 w-4" /> Generate new reflection
                   </button>
                   <button onClick={() => (versoes ? setVersoes(null) : carregarVersoes())} className="press text-muted hover:text-ink">
-                    {versoes ? "Ocultar versões" : "Ver versões"}
+                    {versoes ? "Hide versions" : "See versions"}
                   </button>
                 </div>
                 {versoes && (
                   <ul className="anim-fade-up mt-3 space-y-2">
-                    {versoes.length === 0 && <li className="text-sm text-muted">Nenhuma versão guardada ainda.</li>}
+                    {versoes.length === 0 && <li className="text-sm text-muted">No saved versions yet.</li>}
                     {versoes.map((v, i) => (
                       <li key={v.id} className="rounded-xl border border-line bg-paper p-3 text-sm">
-                        <p className="text-xs text-muted">{i === 0 ? "Atual · " : ""}{ORIGEM[v.origem]} · {formatarData(v.created_at)}</p>
+                        <p className="text-xs text-muted">{i === 0 ? "Current · " : ""}{ORIGEM[v.origem]} · {formatarData(v.created_at)}</p>
                         <div className="mt-1">{v.fontes?.length ? <TextoComCitacoes texto={v.texto} fontes={v.fontes} /> : <p className="whitespace-pre-wrap">{limparCitacoes(v.texto)}</p>}</div>
                       </li>
                     ))}
@@ -179,19 +179,19 @@ function Cartao({
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Por que está ligada a outras notas</p>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Why it&apos;s linked to other notes</p>
                 <ListaConexoes notaId={nota.id} conexoes={conexoes} notas={notas} />
               </div>
 
               <div className="flex items-center gap-4 border-t border-line pt-3 text-sm">
-                <button onClick={abrirEdicao} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="editar" className="h-4 w-4" /> Editar</button>
+                <button onClick={abrirEdicao} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="editar" className="h-4 w-4" /> Edit</button>
                 {confirmaApagar ? (
                   <span className="anim-fade-in inline-flex items-center gap-3">
-                    <button onClick={aoApagar} className="press font-medium text-red-700 dark:text-red-300">Apagar de vez</button>
-                    <button onClick={() => setConfirmaApagar(false)} className="press text-muted">Cancelar</button>
+                    <button onClick={aoApagar} className="press font-medium text-red-700 dark:text-red-300">Delete for good</button>
+                    <button onClick={() => setConfirmaApagar(false)} className="press text-muted">Cancel</button>
                   </span>
                 ) : (
-                  <button onClick={() => setConfirmaApagar(true)} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="apagar" className="h-4 w-4" /> Apagar</button>
+                  <button onClick={() => setConfirmaApagar(true)} className="press inline-flex items-center gap-1.5 text-muted hover:text-ink"><Icon nome="apagar" className="h-4 w-4" /> Delete</button>
                 )}
               </div>
             </>
@@ -318,9 +318,9 @@ export default function Notas() {
 
   function exportar(formato: "md" | "json" | "obsidian") {
     const dia = new Date().toISOString().slice(0, 10);
-    if (formato === "md") baixar(`segundo-cerebro-${dia}.md`, exportarMarkdown(notas ?? []), "text/markdown");
-    else if (formato === "obsidian") baixar(`segundo-cerebro-obsidian-${dia}.zip`, criarZip(montarCofre(notas ?? [], conexoes)), "application/zip");
-    else baixar(`segundo-cerebro-${dia}.json`, JSON.stringify({ notas, conexoes }, null, 2), "application/json");
+    if (formato === "md") baixar(`second-brain-${dia}.md`, exportarMarkdown(notas ?? []), "text/markdown");
+    else if (formato === "obsidian") baixar(`second-brain-obsidian-${dia}.zip`, criarZip(montarCofre(notas ?? [], conexoes)), "application/zip");
+    else baixar(`second-brain-${dia}.json`, JSON.stringify({ notas, conexoes }, null, 2), "application/json");
     setMenuExport(false);
   }
 
@@ -328,29 +328,29 @@ export default function Notas() {
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl">Notas</h1>
+          <h1 className="font-serif text-3xl">Notes</h1>
           <ModoNotas atual="lista" />
         </div>
         <div className="relative">
           <button onClick={() => setMenuExport((v) => !v)} disabled={!notas?.length} className="press inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink disabled:opacity-40">
-            <Icon nome="baixar" className="h-4 w-4" /> Exportar
+            <Icon nome="baixar" className="h-4 w-4" /> Export
           </button>
           {menuExport && (
             <div className="anim-fade-up absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-xl border border-line bg-card text-sm shadow-lg">
               <button onClick={() => exportar("md")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Markdown (.md)</button>
               <button onClick={() => exportar("obsidian")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Obsidian (.zip)</button>
-              <button onClick={() => exportar("json")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Completo (.json)</button>
+              <button onClick={() => exportar("json")} className="block w-full px-4 py-2.5 text-left hover:bg-accent-soft">Full (.json)</button>
             </div>
           )}
         </div>
       </div>
 
       <div className="relative mt-4">
-        <input ref={campoBusca} aria-label="Buscar nas notas" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por palavra ou por ideia…"
+        <input ref={campoBusca} aria-label="Search notes" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Search by word or by idea…"
           className="w-full rounded-xl border border-line bg-card px-4 py-3 outline-none transition focus:border-accent" />
-        {buscando && <span className="absolute right-4 top-3.5 text-xs text-muted">buscando…</span>}
+        {buscando && <span className="absolute right-4 top-3.5 text-xs text-muted">searching…</span>}
       </div>
-      {achados && !achados.semantica && <p className="mt-2 text-xs text-muted">Busca só por palavras agora (a busca por sentido está indisponível no momento).</p>}
+      {achados && !achados.semantica && <p className="mt-2 text-xs text-muted">Searching by words only for now (search by meaning is unavailable at the moment).</p>}
 
       {todasTags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -362,9 +362,9 @@ export default function Notas() {
       )}
 
       {erro && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erro}</p>}
-      {!notas && <p className="mt-8 text-muted"><Pensando texto="Carregando" /></p>}
+      {!notas && <p className="mt-8 text-muted"><Pensando texto="Loading" /></p>}
       {notas && lista.length === 0 && (
-        <p className="anim-fade-in mt-8 text-center text-muted">{notas.length === 0 ? "Você ainda não escreveu nenhuma nota." : "Nada encontrado."}</p>
+        <p className="anim-fade-in mt-8 text-center text-muted">{notas.length === 0 ? "You haven't written any notes yet." : "Nothing found."}</p>
       )}
 
       {(() => {
@@ -408,8 +408,8 @@ export default function Notas() {
       {erroApagar && <p className="mt-4 rounded-xl bg-accent-soft p-3 text-sm">{erroApagar}</p>}
       {desfazer && (
         <div role="status" className="anim-fade-up glass fixed bottom-24 left-1/2 z-20 flex -translate-x-1/2 items-center gap-4 rounded-2xl px-4 py-3 text-sm shadow-lg md:bottom-8">
-          <span>Nota apagada.</span>
-          <button onClick={() => desfazerExclusao(desfazer)} className="press font-medium text-accent">Desfazer</button>
+          <span>Note deleted.</span>
+          <button onClick={() => desfazerExclusao(desfazer)} className="press font-medium text-accent">Undo</button>
         </div>
       )}
     </div>

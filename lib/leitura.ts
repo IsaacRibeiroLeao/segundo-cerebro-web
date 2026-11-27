@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-// Capítulos lidos ("livro:capitulo"), guardados em sc_leitura.
+// Chapters read ("livro:capitulo"), guardados em sc_leitura.
 export function useLeitura() {
   const [lidos, setLidos] = useState<Set<string> | null>(null);
   const [erro, setErro] = useState<string | null>(null);

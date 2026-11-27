@@ -45,10 +45,10 @@ describe("exportarMarkdown", () => {
       nota({ id: "a", conteudo: "Primeira" }),
     ]);
     expect(md.indexOf("Primeira")).toBeLessThan(md.indexOf("Segunda"));
-    expect(md).toContain("João 3:16 (sugerida)");
+    expect(md).toContain("João 3:16 (suggested)");
     expect(md).toContain("#fé");
   });
-  it("cita a reflexão", () => expect(exportarMarkdown([nota({ reflexao: "Linha 1\nLinha 2" })])).toContain("> Reflexão: Linha 1\n> Linha 2"));
+  it("quotes the reflection", () => expect(exportarMarkdown([nota({ reflexao: "Linha 1\nLinha 2" })])).toContain("> Reflection: Linha 1\n> Linha 2"));
 });
 
 describe("formatarData", () => {

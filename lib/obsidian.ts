@@ -32,17 +32,17 @@ export function montarCofre(notas: Nota[], conexoes: Conexao[]): { nome: string;
       .filter((c) => c.a === n.id || c.b === n.id)
       .map((c) => ({ alvo: nomes.get(c.a === n.id ? c.b : c.a), motivo: c.motivo }))
       .filter((l): l is { alvo: string; motivo: string } => !!l.alvo);
-    const refs = n.sc_nota_refs.map((r) => (r.origem === "ia" ? `${r.rotulo} (sugerida)` : r.rotulo));
+    const refs = n.sc_nota_refs.map((r) => (r.origem === "ia" ? `${r.rotulo} (suggested)` : r.rotulo));
     const yaml = [
       "---",
-      `criada: ${n.created_at.slice(0, 10)}`,
+      `created: ${n.created_at.slice(0, 10)}`,
       refs.length ? `passagens: [${refs.map((r) => JSON.stringify(r)).join(", ")}]` : null,
       n.tags.length ? `tags: [${n.tags.map((t) => JSON.stringify(t)).join(", ")}]` : null,
       "---",
     ].filter(Boolean).join("\n");
     const corpo = [
       n.conteudo,
-      n.reflexao ? `> [!note] Reflexão\n> ${n.reflexao.replace(/\n/g, "\n> ")}` : "",
+      n.reflexao ? `> [!note] Reflection\n> ${n.reflexao.replace(/\n/g, "\n> ")}` : "",
       ligacoes.length ? `## Conexões\n${ligacoes.map((l) => `- [[${l.alvo}]] — ${l.motivo}`).join("\n")}` : "",
     ].filter(Boolean).join("\n\n");
     return { nome: `${nomes.get(n.id)}.md`, conteudo: `${yaml}\n\n${corpo}\n` };

@@ -23,7 +23,7 @@ export default function PerfilPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? "");
-      if (data.user?.created_at) setDesde(new Date(data.user.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }));
+      if (data.user?.created_at) setDesde(new Date(data.user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }));
     });
   }, []);
   useEffect(() => {
@@ -53,24 +53,24 @@ export default function PerfilPage() {
 
   return (
     <div>
-      <h1 className="anim-fade-up font-serif text-3xl md:text-4xl">Perfil</h1>
+      <h1 className="anim-fade-up font-serif text-3xl md:text-4xl">Profile</h1>
       <div className="glass anim-fade-up mt-6 flex flex-col items-center rounded-3xl p-7 text-center" style={{ animationDelay: "60ms" }}>
-        <button onClick={() => arquivo.current?.click()} className="press group relative rounded-full" aria-label="Trocar foto de perfil">
+        <button onClick={() => arquivo.current?.click()} className="press group relative rounded-full" aria-label="Change profile photo">
           <Avatar tamanho={112} className="anim-pop" />
           <span className="absolute inset-0 grid place-items-center rounded-full bg-ink/45 text-paper opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             <Icon nome="editar" />
           </span>
         </button>
         <input ref={arquivo} type="file" accept="image/*" hidden onChange={(e) => { trocarFoto(e.target.files?.[0]); e.target.value = ""; }} />
-        <p className="mt-3 text-sm text-muted">{ocupado ? "Salvando…" : "Toque na foto para trocar"}</p>
+        <p className="mt-3 text-sm text-muted">{ocupado ? "Saving…" : "Tap the photo to change it"}</p>
         {perfil?.avatar && (
-          <button onClick={() => salvar({ avatar: null })} className="mt-1 text-xs text-muted underline-offset-4 hover:underline">Remover foto</button>
+          <button onClick={() => salvar({ avatar: null })} className="mt-1 text-xs text-muted underline-offset-4 hover:underline">Remove photo</button>
         )}
 
         <div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-3">
           {[
             ["Notas", notas ? notas.length : "–"],
-            ["Capítulos lidos", lidos ? lidos.size : "–"],
+            ["Chapters read", lidos ? lidos.size : "–"],
           ].map(([r, v]) => (
             <div key={r} className="rounded-2xl border border-line bg-card px-3 py-3">
               <p className="font-serif text-2xl text-accent">{v}</p>
@@ -78,23 +78,23 @@ export default function PerfilPage() {
             </div>
           ))}
         </div>
-        {desde && <p className="mt-3 text-xs text-muted">Membro desde {desde}</p>}
+        {desde && <p className="mt-3 text-xs text-muted">Member since {desde}</p>}
 
         <form onSubmit={guardarNome} className="mt-5 w-full max-w-sm text-left">
-          <label className="text-sm text-muted" htmlFor="nome">Como devo te chamar?</label>
+          <label className="text-sm text-muted" htmlFor="nome">What should I call you?</label>
           <div className="campo mt-1.5 rounded-2xl border border-line bg-card px-4 py-3">
-            <input id="nome" value={nome} maxLength={60} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome" className="w-full bg-transparent outline-none" />
+            <input id="nome" value={nome} maxLength={60} onChange={(e) => setNome(e.target.value)} placeholder="Your name" className="w-full bg-transparent outline-none" />
           </div>
           <p className="mt-2 text-xs text-muted">{email}</p>
           <button disabled={ocupado} className="btn-accent press mt-5 w-full rounded-2xl px-4 py-3 font-medium text-paper disabled:opacity-60">
-            {ok ? "Salvo ✓" : "Salvar"}
+            {ok ? "Saved ✓" : "Salvar"}
           </button>
         </form>
         {erro && <p role="alert" className="mt-3 text-sm text-red-600 anim-fade-in">{erro}</p>}
       </div>
 
       <button onClick={() => supabase.auth.signOut()} className="press anim-fade-up mt-6 flex items-center gap-2 text-muted hover:text-ink" style={{ animationDelay: "120ms" }}>
-        <Icon nome="sair" /> Sair da conta
+        <Icon nome="sair" /> Sign out
       </button>
     </div>
   );

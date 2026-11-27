@@ -9,13 +9,13 @@ import { limparDadosLocais } from "@/lib/sessao";
 
 export function AuthGate({ children }: { children: (session: Session) => React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setLoading] = useState(true);
   const [recuperando, setRecuperando] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setCarregando(false);
+      setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
       if (evento === "SIGNED_OUT") limparDadosLocais();
@@ -77,13 +77,13 @@ function NovaSenha({ aoTerminar }: { aoTerminar: () => void }) {
   return (
     <main className="grid min-h-screen place-items-center px-5">
       <form onSubmit={enviar} className="glass anim-fade-up w-full max-w-sm rounded-3xl p-7">
-        <h1 className="font-serif text-2xl">Nova senha</h1>
-        <p className="mt-1 text-sm text-muted">Escolha a senha que você vai usar daqui para frente.</p>
+        <h1 className="font-serif text-2xl">New password</h1>
+        <p className="mt-1 text-sm text-muted">Choose the password you&apos;ll use from now on.</p>
         <div className="campo mt-5 rounded-2xl border border-line bg-card px-4 py-3">
-          <input type="password" required minLength={6} aria-label="Nova senha" placeholder="Nova senha" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full bg-transparent outline-none" />
+          <input type="password" required minLength={6} aria-label="New password" placeholder="New password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full bg-transparent outline-none" />
         </div>
         {erro && <p role="alert" className="mt-3 text-sm text-red-600">{erro}</p>}
-        <button disabled={enviando} className="btn-accent press mt-5 w-full rounded-2xl px-4 py-3 font-medium text-paper disabled:opacity-60">{enviando ? "Salvando…" : "Salvar senha"}</button>
+        <button disabled={enviando} className="btn-accent press mt-5 w-full rounded-2xl px-4 py-3 font-medium text-paper disabled:opacity-60">{enviando ? "Saving…" : "Save password"}</button>
       </form>
     </main>
   );
@@ -102,10 +102,10 @@ function Login() {
   async function esqueci() {
     setErro(null);
     setAviso(null);
-    if (!email) { setErro("Digite seu email acima e toque de novo."); return; }
+    if (!email) { setErro("Enter your email above and tap again."); return; }
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
     if (error) setErro(error.message);
-    else setAviso("Se esse email tiver conta, enviamos um link para criar uma nova senha.");
+    else setAviso("If that email has an account, we sent a link to set a new password.");
   }
 
   async function enviar(e: React.FormEvent) {
@@ -116,10 +116,10 @@ function Login() {
     if (criando) {
       const { data, error } = await supabase.auth.signUp({ email, password: senha });
       if (error) { setErro(error.message); setTremer((n) => n + 1); }
-      else if (!data.session) setAviso("Conta criada. Confirme o email que enviamos e depois entre.");
+      else if (!data.session) setAviso("Account created. Confirm the email we sent, then sign in.");
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-      if (error) { setErro("Email ou senha incorretos."); setTremer((n) => n + 1); }
+      if (error) { setErro("Incorrect email or password."); setTremer((n) => n + 1); }
     }
     setEnviando(false);
   }
@@ -130,8 +130,8 @@ function Login() {
       <form key={tremer} onSubmit={enviar} className={`glass relative w-full max-w-sm rounded-3xl p-7 anim-fade-up ${tremer ? "anim-shake" : ""}`}>
         <div className="flex flex-col items-center text-center">
           <Image src="/logo.png" alt="" width={84} height={84} priority className="anim-float rounded-[22px] shadow-lg" />
-          <h1 className="mt-5 font-serif text-3xl text-ink anim-fade-up" style={{ animationDelay: "0.1s" }}>Segundo Cérebro</h1>
-          <p className="mt-1.5 text-muted anim-fade-up" style={{ animationDelay: "0.18s" }}>Suas anotações, conectadas.</p>
+          <h1 className="mt-5 font-serif text-3xl text-ink anim-fade-up" style={{ animationDelay: "0.1s" }}>Second Brain</h1>
+          <p className="mt-1.5 text-muted anim-fade-up" style={{ animationDelay: "0.18s" }}>Your notes, connected.</p>
         </div>
 
         <label className="campo mt-7 flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 anim-fade-up" style={{ animationDelay: "0.24s" }}>
@@ -140,22 +140,22 @@ function Login() {
         </label>
         <label className="campo mt-3 flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 anim-fade-up" style={{ animationDelay: "0.3s" }}>
           <Icon nome="notas" className="h-5 w-5 text-accent shrink-0" />
-          <input type={ver ? "text" : "password"} required minLength={6} placeholder="Senha" aria-label="Senha" autoComplete={criando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full bg-transparent outline-none placeholder:text-muted/70" />
-          <button type="button" onClick={() => setVer(!ver)} className="text-xs text-muted hover:text-ink press" aria-label={ver ? "Ocultar senha" : "Mostrar senha"}>{ver ? "ocultar" : "ver"}</button>
+          <input type={ver ? "text" : "password"} required minLength={6} placeholder="Password" aria-label="Password" autoComplete={criando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full bg-transparent outline-none placeholder:text-muted/70" />
+          <button type="button" onClick={() => setVer(!ver)} className="text-xs text-muted hover:text-ink press" aria-label={ver ? "Hide password" : "Show password"}>{ver ? "ocultar" : "ver"}</button>
         </label>
 
         {erro && <p role="alert" className="mt-3 rounded-xl bg-accent-soft p-3 text-sm text-ink anim-fade-in">{erro}</p>}
         {aviso && <p className="mt-3 text-sm text-sage anim-fade-in">{aviso}</p>}
 
         <button disabled={enviando} className="btn-accent press mt-6 w-full rounded-2xl px-4 py-3.5 font-medium text-paper disabled:opacity-60 anim-fade-up" style={{ animationDelay: "0.36s" }}>
-          {enviando ? "Aguarde…" : criando ? "Criar conta" : "Entrar"}
+          {enviando ? "Please wait…" : criando ? "Create account" : "Entrar"}
         </button>
         {!criando && (
-          <button type="button" onClick={esqueci} className="mt-4 w-full text-sm text-muted underline-offset-4 hover:underline">Esqueci minha senha</button>
+          <button type="button" onClick={esqueci} className="mt-4 w-full text-sm text-muted underline-offset-4 hover:underline">Forgot my password</button>
         )}
         {CADASTRO_ABERTO && (
           <button type="button" onClick={() => { setCriando(!criando); setErro(null); }} className="mt-2 w-full text-sm text-muted underline-offset-4 hover:underline">
-            {criando ? "Já tenho conta" : "Primeiro acesso? Criar conta"}
+            {criando ? "I already have an account" : "First time? Create account"}
           </button>
         )}
       </form>

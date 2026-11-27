@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { extrairRefs, NOMES, textoDaRef, type Ref } from "./biblia.ts";
-import { embed, gerar, lerJson, SISTEMA, SISTEMA_PROSA, type Conteudo } from "./gemini.ts";
+import { embed, gerar, lerJson, SISTEMA, SISTEMA_PROSA, transcreverAudio, type Conteudo } from "./gemini.ts";
 import { CORS, HttpError, idDaNota, json, textoDe, type Supa } from "./util.ts";
 
 const BIBLIA_URL =
@@ -448,6 +448,19 @@ Deno.serve(async (req) => {
         ? { texto: p.texto.trim().slice(0, 600), passagem: typeof p.passagem === "string" ? p.passagem.trim().slice(0, 80) : "" }
         : null;
       return json({ resposta, percepcao, fontes: fontes(notas) });
+    }
+
+    if (acao === "transcrever") {
+      const audio = typeof body.audio === "string" ? body.audio : "";
+      const mime = typeof body.mime === "string" ? body.mime.split(";")[0].trim() : "";
+      if (!audio) throw new HttpError(400, "audio obrigatório.");
+      if (audio.length > 8_000_000) throw new HttpError(413, "Áudio grande demais (máximo de cerca de 2 minutos).");
+      if (!["audio/wav", "audio/x-wav", "audio/mp3", "audio/mpeg", "audio/aac", "audio/ogg", "audio/flac", "audio/aiff"].includes(mime)) {
+        throw new HttpError(400, "Formato de áudio não suportado.");
+      }
+      const texto = await transcreverAudio(audio, mime);
+      if (!texto) throw new HttpError(422, "Não consegui entender o áudio.");
+      return json({ texto });
     }
 
     if (acao === "versiculo") {

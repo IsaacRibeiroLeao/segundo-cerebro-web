@@ -21,7 +21,7 @@ import { NOMES_LIVROS, TOTAL_CAPITULOS, proximoNaoLido } from "@/lib/livros";
 
 function saudacao() {
   const h = new Date().getHours();
-  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
 
 const RASCUNHO = "sc_rascunho_v1";
@@ -107,7 +107,7 @@ export default function Hoje() {
       setPendenteId(null);
     } catch (e) {
       setPendenteId(notaId);
-      setErro(`Nota guardada, mas a análise falhou: ${(e as Error).message}`);
+      setErro(`Note saved, but the analysis failed: ${(e as Error).message}`);
     }
     await recarregar();
     setConectando(false);
@@ -125,7 +125,7 @@ export default function Hoje() {
       .select("id")
       .single();
     if (error || !data) {
-      setErro(error?.message ?? "Não foi possível salvar.");
+      setErro(error?.message ?? "Couldn't save.");
       setFase("livre");
       return;
     }
@@ -150,32 +150,32 @@ export default function Hoje() {
   return (
     <div>
       <p className="anim-fade-up text-sm text-muted">
-        {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+        {new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" })}
       </p>
       <h1 className="anim-fade-up mt-1 font-serif text-3xl md:text-4xl" style={{ animationDelay: "40ms" }}>
         {saudacao()}{nomeUsuario ? `, ${nomeUsuario}` : ""}.
       </h1>
       <p className="anim-fade-up mt-2 text-muted" style={{ animationDelay: "80ms" }}>
-        O que você leu ou sentiu hoje?
+        What did you read or feel today?
       </p>
 
       {lidos && notas && (
         <section className="cartao-ouro anim-fade-up mt-6 rounded-2xl p-5" style={{ animationDelay: "100ms" }}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-serif text-lg">Sua jornada continua</p>
+              <p className="font-serif text-lg">Your journey continues</p>
               <p className="mt-0.5 text-sm text-muted">
-                {lidosN} de {TOTAL_CAPITULOS} capítulos · {semana} {semana === 1 ? "nota" : "notas"} na semana · {sequencia} {sequencia === 1 ? "dia" : "dias"} seguidos
+                {lidosN} of {TOTAL_CAPITULOS} chapters · {semana} {semana === 1 ? "note" : "notes"} this week · {sequencia}-day streak
               </p>
             </div>
             <Tile nome="biblia" tamanho={42} ativo />
           </div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={lidosN} aria-valuemin={0} aria-valuemax={TOTAL_CAPITULOS} aria-label="Capítulos lidos">
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={lidosN} aria-valuemin={0} aria-valuemax={TOTAL_CAPITULOS} aria-label="Chapters read">
             <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.max(1, (lidosN / TOTAL_CAPITULOS) * 100)}%` }} />
           </div>
           {proximo && (
             <Link href="/biblia" className="press mt-3 inline-block text-sm font-medium text-accent underline-offset-4 hover:underline">
-              Continuar em {NOMES_LIVROS[proximo.livro]} {proximo.capitulo} →
+              Continue in {NOMES_LIVROS[proximo.livro]} {proximo.capitulo} →
             </Link>
           )}
         </section>
@@ -192,8 +192,8 @@ export default function Hoje() {
             value={conteudo}
             onChange={(e) => setConteudo(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
-            aria-label="Sua anotação"
-            placeholder="Escreva aqui o que o Espírito Santo falou ao seu coração…"
+            aria-label="Your note"
+            placeholder="Write here what the Holy Spirit spoke to your heart…"
             rows={5}
             className="w-full resize-y bg-transparent pr-10 font-serif text-lg leading-relaxed outline-none placeholder:text-muted/70"
           />
@@ -202,8 +202,8 @@ export default function Hoje() {
               type="button"
               onClick={ditado.alternar}
               aria-pressed={ditado.ativo}
-              aria-label={ditado.ativo ? "Parar de ouvir" : "Ditar por voz"}
-              title={ditado.ativo ? "Parar" : "Ditar por voz"}
+              aria-label={ditado.ativo ? "Stop listening" : "Dictate by voice"}
+              title={ditado.ativo ? "Parar" : "Dictate by voice"}
               className={`press absolute right-0 top-0 grid h-9 w-9 place-items-center rounded-full ${ditado.ativo ? "bg-accent text-paper" : "text-muted hover:text-ink"}`}
             >
               {ditado.ativo && <span className="anim-breathe absolute inset-0 rounded-full bg-accent" aria-hidden="true" />}
@@ -215,42 +215,42 @@ export default function Hoje() {
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <input
             value={refs}
-            aria-label="Passagem bíblica (opcional)"
+            aria-label="Bible passage (optional)"
             onChange={(e) => setRefs(e.target.value)}
-            placeholder="Passagem (opcional): João 15:5, Sl 23"
+            placeholder="Passage (optional): João 15:5, Sl 23"
             className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none transition focus:border-accent"
           />
           <input
             value={tags}
-            aria-label="Tags (opcional)"
+            aria-label="Tags (optional)"
             onChange={(e) => setTags(e.target.value)}
-            placeholder="Tags (opcional): fé, obediência"
+            placeholder="Tags (optional): faith, obedience"
             className="rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none transition focus:border-accent"
           />
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-xs text-muted">Sem passagem? Eu sugiro uma para dar contexto. <span className="hidden md:inline">Ctrl+Enter guarda.</span></p>
+          <p className="text-xs text-muted">No passage? I&apos;ll suggest one for context. <span className="hidden md:inline">Ctrl+Enter saves.</span></p>
           <button
             disabled={fase !== "livre" || !conteudo.trim()}
             className="press btn-accent rounded-xl px-5 py-2.5 text-sm font-medium text-paper disabled:opacity-50"
           >
-            {fase === "guardando" ? "Guardando…" : "Guardar e conectar"}
+            {fase === "guardando" ? "Saving…" : "Save and connect"}
           </button>
         </div>
       </form>
 
       {conectando && (
-        <p className="anim-fade-in mt-5 text-sm"><Pensando texto="Procurando ligações com o que você já escreveu" /></p>
+        <p className="anim-fade-in mt-5 text-sm"><Pensando texto="Looking for links to what you've already written" /></p>
       )}
       {analisando && !conectando && (
-        <p className="anim-fade-in mt-5 text-sm"><Pensando texto="Analisando suas notas antigas" /></p>
+        <p className="anim-fade-in mt-5 text-sm"><Pensando texto="Analyzing your older notes" /></p>
       )}
       {erro && (
         <div className="anim-fade-up mt-4 rounded-xl bg-accent-soft p-3 text-sm text-ink">
           {erro}
           {pendenteId && (
             <button onClick={() => { setErro(null); conectar(pendenteId); }} className="press ml-3 font-medium text-accent underline-offset-4 hover:underline">
-              Tentar de novo
+              Try again
             </button>
           )}
         </div>
@@ -262,12 +262,12 @@ export default function Hoje() {
             <svg viewBox="0 0 24 24" className="h-5 w-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path className="anim-check" d="M5 12.5l4.5 4.5L19 7.5" />
             </svg>
-            <p className="text-xs font-medium uppercase tracking-wide text-accent">Nota guardada e conectada</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-accent">Note saved and connected</p>
           </div>
 
           {resultado.passagem && (
             <div>
-              <p className="mb-1.5 text-xs text-muted">Para dar contexto à sua nota:</p>
+              <p className="mb-1.5 text-xs text-muted">To give your note context:</p>
               <Passagem rotulo={resultado.passagem.ref} sugerida motivo={resultado.passagem.motivo} />
             </div>
           )}
@@ -280,7 +280,7 @@ export default function Hoje() {
           {notaResultado && <TagsSugeridas nota={notaResultado} aoMudar={recarregar} />}
 
           <Link href="/conversar" className="press inline-block text-sm font-medium text-accent underline-offset-4 hover:underline">
-            Quero pensar mais sobre isso →
+            I want to think more about this →
           </Link>
         </section>
       )}
@@ -289,13 +289,13 @@ export default function Hoje() {
 
       <section className="mt-10">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-serif text-xl">Últimas anotações</h2>
-          <Link href="/notas" className="text-sm text-muted hover:text-ink">Ver todas</Link>
+          <h2 className="font-serif text-xl">Latest notes</h2>
+          <Link href="/notas" className="text-sm text-muted hover:text-ink">See all</Link>
         </div>
         {notas && recentes.length === 0 ? (
           <div className="mt-4 flex flex-col items-center text-center">
             <Image src="/icons/ilustracao-vazio.png" alt="" width={220} height={220} className="anim-fade-up" />
-            <p className="mt-2 text-muted">Sua primeira anotação começa aqui.</p>
+            <p className="mt-2 text-muted">Your first note starts here.</p>
           </div>
         ) : (
           <ul className="mt-4 space-y-3">
@@ -308,7 +308,7 @@ export default function Hoje() {
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs text-muted">
                         {formatarData(n.created_at)}
-                        {p ? ` · ${p.rotulo}${p.sugerida ? " (sugerida)" : ""}` : ""}
+                        {p ? ` · ${p.rotulo}${p.sugerida ? " (suggested)" : ""}` : ""}
                       </span>
                       <span className="mt-1 line-clamp-3 block font-serif">{n.conteudo}</span>
                     </span>
